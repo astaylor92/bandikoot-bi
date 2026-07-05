@@ -1,0 +1,12 @@
+{
+  "name": "recorder",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "rm-record": "./record.mjs"
+  },
+  "dependencies": {
+    "@microsoft/signalr": "^8.0.7"
+  }
+}

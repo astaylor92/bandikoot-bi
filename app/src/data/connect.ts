@@ -1,0 +1,125 @@
+import { RestClient } from '../api/restClient';
+import { TokenProvider } from '../api/tokenProvider';
+import { SignalRTransport } from '../api/signalrTransport';
+import { PollingTransport } from '../api/pollingTransport';
+import { ReplayTransport } from '../replay/replayTransport';
+import type { LapReplayFixture } from '../replay/fixture';
+import type { Transport, TransportHandlers } from './transport';
+import { useSessionStore, lapRecordFromCarPosition, type LapRecord } from './sessionStore';
+import { useAppStore } from '../state/appStore';
+
+const rest = new RestClient();
+
+let active: Transport | null = null;
+let activeReplay: ReplayTransport | null = null;
+let seededSessionId: number | null = null;
+
+function storeHandlers(): TransportHandlers {
+  const store = useSessionStore.getState();
+  return {
+    onFullState: (state) => {
+      useSessionStore.getState().applyFullState(state);
+    },
+    onSessionPatch: (patch) => useSessionStore.getState().applySessionPatch(patch),
+    onCarPatches: (patches) => useSessionStore.getState().applyCarPatches(patches),
+    onLapHistory: (car, laps) => useSessionStore.getState().seedLapLog(car, laps),
+    onStatus: (status, detail) => useSessionStore.getState().setConnection(status, detail),
+    onReset: () => {
+      // Keep entries/laps; the transport follows a reset with a fresh snapshot.
+      void store;
+    },
+  };
+}
+
+/**
+ * Seed the lap log from LoadSessionLaps once we know which session is
+ * running. Live patch accumulation only sees laps completed while we watch;
+ * this backfills everything the race has already run.
+ */
+async function seedLapsFromRest(eventId: number, sessionId: number): Promise<void> {
+  if (seededSessionId === sessionId) return;
+  seededSessionId = sessionId;
+  try {
+    const laps = await rest.loadSessionLaps(eventId, sessionId);
+    const byCar = new Map<string, LapRecord[]>();
+    for (const cp of laps) {
+      if (!cp.number) continue;
+      const rec = lapRecordFromCarPosition(cp);
+      if (!rec) continue;
+      const arr = byCar.get(cp.number);
+      if (arr) arr.push(rec);
+      else byCar.set(cp.number, [rec]);
+    }
+    const store = useSessionStore.getState();
+    for (const [car, recs] of byCar) store.seedLapLog(car, recs);
+  } catch {
+    seededSessionId = null; // retry on next snapshot
+  }
+}
+
+export async function connectLive(eventId: number, label: string): Promise<void> {
+  await disconnect();
+  useSessionStore.getState().resetSession();
+  useAppStore.getState().setSession('live', eventId, label);
+  seededSessionId = null;
+
+  const base = storeHandlers();
+  const handlers: TransportHandlers = {
+    ...base,
+    onFullState: (state) => {
+      base.onFullState(state);
+      if (state.sessionId) void seedLapsFromRest(eventId, state.sessionId);
+    },
+  };
+
+  const { brokerUrl, teamKey } = useAppStore.getState();
+  const tokens = new TokenProvider(brokerUrl, teamKey || undefined);
+  const signalr = new SignalRTransport(eventId, handlers, rest, tokens);
+  try {
+    await signalr.start();
+    active = signalr;
+  } catch {
+    // No broker / no credentials / hub unreachable -> public REST polling.
+    await signalr.stop().catch(() => {});
+    const polling = new PollingTransport(eventId, handlers, rest);
+    await polling.start();
+    active = polling;
+  }
+}
+
+export async function connectReplay(fixtureUrl: string, label: string): Promise<void> {
+  await disconnect();
+  useSessionStore.getState().resetSession();
+
+  const res = await fetch(fixtureUrl);
+  if (!res.ok) throw new Error(`Failed to load replay fixture: HTTP ${res.status}`);
+  const fixture = (await res.json()) as LapReplayFixture;
+  if (fixture.format !== 'redmist-replay/laps@1') {
+    throw new Error(`Unsupported fixture format: ${String(fixture.format)}`);
+  }
+
+  useAppStore.getState().setSession('replay', fixture.eventId, label || fixture.eventName);
+
+  const handlers = storeHandlers();
+  const replay = new ReplayTransport(fixture, handlers, (p) =>
+    useAppStore.getState().setReplayProgress(p),
+  );
+  await replay.start();
+  active = replay;
+  activeReplay = replay;
+}
+
+export function getActiveReplay(): ReplayTransport | null {
+  return activeReplay;
+}
+
+export async function disconnect(): Promise<void> {
+  const t = active;
+  active = null;
+  activeReplay = null;
+  if (t) await t.stop().catch(() => {});
+  useSessionStore.getState().setConnection('idle');
+  useAppStore.getState().setReplayProgress(null);
+}
+
+export { rest as restClient };

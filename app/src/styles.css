@@ -1,0 +1,29 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --color-pit-bg: #0a0a0f;
+  --color-pit-panel: #14141c;
+  --color-pit-line: #262633;
+  --color-pit-text: #f2f2f7;
+  --color-pit-dim: #9a9aad;
+  --color-flag-green: #16a34a;
+  --color-flag-yellow: #facc15;
+  --color-flag-red: #dc2626;
+  --color-flag-white: #f8fafc;
+  --color-accent: #38bdf8;
+  --color-mycar: #f59e0b;
+}
+
+html,
+body {
+  background: var(--color-pit-bg);
+  color: var(--color-pit-text);
+  overscroll-behavior: none;
+}
+
+/* Timing numerals must not jiggle as values change. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}

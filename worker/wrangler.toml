@@ -1,0 +1,14 @@
+name = "pitwall-token-broker"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+# Secrets (set with `wrangler secret put <NAME>`):
+#   RM_CLIENT_ID     - Red Mist relay client id (org settings -> Relay Connection)
+#   RM_CLIENT_SECRET - Red Mist relay client secret
+#   TEAM_KEY         - optional shared passphrase; when set, requests must send
+#                      an "x-team-key" header with this value
+
+[vars]
+# Origin allowed to call this broker (your Pages domain). "*" is fine while testing.
+ALLOWED_ORIGIN = "*"
+AUTH_URL = "https://auth.redmist.racing/realms/redmist/protocol/openid-connect/token"

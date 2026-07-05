@@ -1,0 +1,14 @@
+{
+  "name": "bandikoot-bi",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Live race timing & strategy app for endurance racing teams, powered by the Red Mist Timing & Scoring API",
+  "scripts": {
+    "install:all": "npm --prefix app install && npm --prefix worker install && npm --prefix tools/recorder install",
+    "dev": "npm --prefix app run dev",
+    "build": "npm --prefix app run build",
+    "test": "npm --prefix app run test",
+    "typecheck": "npm --prefix app run typecheck && npm --prefix worker run typecheck",
+    "fixtures": "node tools/fixtures/build-demo.mjs"
+  }
+}

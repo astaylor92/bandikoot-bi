@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "app",
+      "runtimeExecutable": "wsl.exe",
+      "runtimeArgs": [
+        "-d",
+        "Ubuntu-22.04",
+        "-e",
+        "bash",
+        "-lc",
+        "cd ~/projects/bandikoot-bi/app && npx vite --host --port 5173 --strictPort"
+      ],
+      "port": 5173
+    }
+  ]
+}
