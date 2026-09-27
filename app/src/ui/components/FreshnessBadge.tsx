@@ -27,7 +27,7 @@ export function FreshnessBadge() {
   const title = [
     'Time since any car was last seen crossing the line.',
     'Under green, 30s+ means the feed may be stuck; 90s+ means it almost certainly is.',
-    `Feed: ${feedSource === 'token' ? 'authenticated (token)' : feedSource === 'public' ? 'public results' : '–'}`,
+    `Feed: ${feedSource === 'token' ? 'authenticated (token)' : feedSource === 'public' ? 'public results' : feedSource === 'public-laps' ? 'public lap history (~20s delay)' : '–'}`,
     `Last poll/update: ${pollAgo === null ? '–' : `${pollAgo}s ago`}`,
   ].join('\n');
 

@@ -26,10 +26,17 @@ The swagger file doesn't list per-endpoint auth, so auth status below was checke
 ## Live feed selection (`app/src/data/snapshotSource.ts`)
 
 1. If a broker URL is configured, try `GetCurrentSessionStateJson` with the broker's token.
-2. If there is no token or anything fails, use the public `LoadSessionResults` for the **newest-started session that has cars**.
+2. If there is no token or anything fails, go through sessions newest-first:
+   - **A session with results:** use its public `LoadSessionResults`.
+   - **A running session (no end time, not the shadow session 95):** `LoadSessionResults` returns **HTTP 204, empty, for the whole race** (verified 2026-09-27 on 410/16). The board is instead **rebuilt from `LoadSessionLaps`**, taking the latest lap record per car.
+     - Each record is a full CarPosition as of that lap: positions, gaps, class, flag and pit.
+     - The lap history grows to about 5 MB, so it's pulled at most every 20 s. The badge reads `· PUBLIC LAPS`.
+     - Race clock is the most recent crossing's total time. Time to go comes from the race length in the session name ("Sunday 2+5Hr" = 7 h).
+     - Team names and class colours come from a finished session of the same event.
+   - **A running session nobody has crossed yet:** wait (no board) rather than fall back to an older race. Before this fix, Saturday's final results would have been shown as live.
    - Retry the token path every 5 minutes.
    - Re-resolve the session every 60 seconds. Searching costs one request per session, so it never runs more often than that, even when the last search found nothing (e.g. race morning before any session has cars). Between searches each poll is a single `LoadSessionResults`.
-3. The header badge shows which feed is active (`· TOKEN` or `· PUBLIC`).
+3. The header badge shows which feed is active (`· TOKEN`, `· PUBLIC` or `· PUBLIC LAPS`).
 4. **Freshness:** in live mode the header shows *last crossing Ns ago*, the wall-clock time since any car was seen completing a lap. A cached feed still "succeeds" on every poll, so this is the real staleness test.
    - Under green it turns yellow at 30 s and red at 90 s. Under yellow the limits are 60 s and 180 s.
    - Under red or checkered it never warns.
