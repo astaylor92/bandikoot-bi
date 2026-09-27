@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppStore } from './state/appStore';
 import { useSessionStore } from './data/sessionStore';
 import { disconnect } from './data/connect';
@@ -16,7 +16,8 @@ import { RivalToast } from './ui/components/RivalToast';
 import { FreshnessBadge } from './ui/components/FreshnessBadge';
 import { formatClock } from './data/time';
 import { useRaceClock } from './ui/hooks/useRaceClock';
-import type { RaceClock } from './strategy/liveInputs';
+import { clockLabel } from './strategy/schedule';
+import { ScheduleEditor } from './ui/components/ScheduleEditor';
 
 export default function App() {
   const view = useAppStore((s) => s.view);
@@ -49,7 +50,6 @@ export default function App() {
 
   const inSession = mode !== null;
   const flag = flagStyle(session.currentFlag);
-  const clock = useRaceClock();
 
   const leaveSession = async () => {
     await disconnect();
@@ -75,7 +75,7 @@ export default function App() {
             <>
               <span className={`rounded px-1.5 py-0.5 text-xs font-black sm:px-2 sm:text-sm ${flag.className}`}>{flag.label}</span>
               <span className="hidden text-sm text-pit-dim lg:inline">{session.sessionName}</span>
-              <RaceClockText clock={clock} />
+              <RaceClockText />
             </>
           )}
           <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
@@ -143,26 +143,85 @@ function Tab({ label, active, onClick }: { label: string; active: boolean; onCli
   );
 }
 
-/** "1:23:45 · 5:36:15 left" — elapsed always, remaining when known (~ = estimated from the race length). */
-function RaceClockText({ clock }: { clock: RaceClock }) {
-  if (clock.elapsedMs === null) return null;
-  const estimated = clock.lengthSource === 'name' || clock.lengthSource === 'setting';
-  const title = estimated
-    ? `Time left is estimated: the timing feed has no countdown, so it uses the race length from ${
-        clock.lengthSource === 'name' ? 'the session name' : 'the Pit Plan race length'
-      }.`
-    : 'Race time elapsed · time left';
-  return (
-    <span className="tnum whitespace-nowrap text-sm" title={title}>
-      <span className={clock.remainingMs !== null ? 'hidden sm:inline' : ''}>{formatClock(clock.elapsedMs)}</span>
-      {clock.remainingMs !== null && (
+/**
+ * Header race clock. With a race schedule: time to the next checkered flag
+ * (naming the flag when more parts follow), the break countdown, or the start.
+ * Otherwise elapsed · time left (~ = estimated). Tap to edit the schedule.
+ */
+function RaceClockText() {
+  const [, setTick] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const mode = useAppStore((s) => s.mode);
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const clock = useRaceClock();
+  const sch = clock.schedule;
+
+  let body: React.ReactNode = null;
+  let title = 'Race time elapsed · time left';
+  if (sch) {
+    title = 'From the race schedule (tap to change)';
+    if (sch.phase === 'racing') {
+      body = (
         <>
-          <span className="hidden sm:inline text-pit-dim"> · </span>
-          {estimated ? '~' : ''}
-          {formatClock(clock.remainingMs)}
-          <span className="text-pit-dim"> left</span>
+          {formatClock(sch.toFlagMs)}
+          {sch.isLastSegment ? (
+            <span className="text-pit-dim"> left</span>
+          ) : (
+            <>
+              <span className="hidden text-pit-dim sm:inline"> to {clockLabel(sch.flagAtMs!)} flag</span>
+              <span className="text-pit-dim sm:hidden"> to {clockLabel(sch.flagAtMs!).replace(/\s?[AP]M$/i, '')}</span>
+            </>
+          )}
         </>
-      )}
-    </span>
+      );
+    } else if (sch.phase === 'break' || sch.phase === 'before') {
+      body = (
+        <>
+          <span className="font-bold text-flag-yellow">{sch.phase === 'break' ? 'BREAK' : 'STARTS'}</span>
+          <span className="text-pit-dim"> · green {clockLabel(sch.nextGreenAtMs!)} (</span>
+          {formatClock(sch.nextGreenAtMs! - Date.now())}
+          <span className="text-pit-dim">)</span>
+        </>
+      );
+    } else {
+      body = <span className="text-pit-dim">finished</span>;
+    }
+  } else if (clock.elapsedMs !== null) {
+    const estimated = clock.lengthSource === 'name' || clock.lengthSource === 'setting';
+    if (estimated) {
+      title = `Time left is estimated from ${
+        clock.lengthSource === 'name' ? 'the session name' : 'the Pit Plan race length'
+      } — tap to set the race schedule.`;
+    }
+    body = (
+      <>
+        <span className={clock.remainingMs !== null ? 'hidden sm:inline' : ''}>{formatClock(clock.elapsedMs)}</span>
+        {clock.remainingMs !== null && (
+          <>
+            <span className="hidden text-pit-dim sm:inline"> · </span>
+            {estimated ? '~' : ''}
+            {formatClock(clock.remainingMs)}
+            <span className="text-pit-dim"> left</span>
+          </>
+        )}
+      </>
+    );
+  }
+  if (body === null) return null;
+  const canEdit = mode === 'live';
+  return (
+    <>
+      <button
+        className={`tnum whitespace-nowrap text-left text-sm ${canEdit ? 'underline decoration-pit-line decoration-dotted underline-offset-4' : 'cursor-default'}`}
+        title={title}
+        onClick={() => canEdit && setEditing(true)}
+      >
+        {body}
+      </button>
+      {editing && <ScheduleEditor onClose={() => setEditing(false)} />}
+    </>
   );
 }

@@ -4,6 +4,7 @@ import type { LapRecord } from '../data/sessionStore';
 import { parseDurationMs } from '../data/time';
 import { raceLengthMsFromName } from '../data/lapsSnapshot';
 import { Flags } from '../api/redmist/flags';
+import type { ScheduleStatus } from './schedule';
 import { paceSummary, type PaceSummary } from './pace';
 import { isParked } from './nextPit';
 import { projectStandings, type ProjectedCar, type ProjectionCarInput } from './projection';
@@ -12,8 +13,27 @@ export interface RaceClock {
   elapsedMs: number | null;
   remainingMs: number | null;
   raceEndMs: number | null;
-  /** Where the race length came from: the timing feed, the session name, or the Pit Plan setting. */
-  lengthSource: 'feed' | 'name' | 'setting' | null;
+  /** Where the race length came from: a race schedule, the timing feed, the session name, or the Pit Plan setting. */
+  lengthSource: 'schedule' | 'feed' | 'name' | 'setting' | null;
+  /** Present when timing comes from a race schedule (wall clock). */
+  schedule?: ScheduleStatus;
+}
+
+/**
+ * Race clock from a wall-clock schedule: "remaining" is time to the current
+ * (or next) checkered flag, so each part of a split day (2+5) is planned as its
+ * own race. Elapsed still comes from the timing feed's race clock.
+ */
+export function scheduledRaceClock(session: SessionState, status: ScheduleStatus): RaceClock {
+  const elapsedMs = parseDurationMs(session.runningRaceTime);
+  const remainingMs = status.phase === 'finished' ? 0 : status.toFlagMs;
+  return {
+    elapsedMs,
+    remainingMs,
+    raceEndMs: elapsedMs !== null && remainingMs !== null ? elapsedMs + remainingMs : null,
+    lengthSource: 'schedule',
+    schedule: status,
+  };
 }
 
 /**

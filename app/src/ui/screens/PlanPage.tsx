@@ -18,14 +18,16 @@ export function PlanPage() {
   const clock = useRaceClock();
   const elapsedMs = clock.elapsedMs ?? 0;
 
+  // Same race end as the header/next pit (schedule, feed or name); the box below is only a fallback.
+  const derivedEnd = clock.lengthSource === 'setting' || clock.raceEndMs === null ? null : Math.round(clock.raceEndMs / MIN) * MIN;
   const cfg: StintConfig = useMemo(
     () => ({
-      raceLengthMs: stored.raceLengthMin * MIN,
+      raceLengthMs: derivedEnd ?? stored.raceLengthMin * MIN,
       maxStintMs: stored.maxStintMin * MIN,
       minPitMs: stored.minPitMin * MIN,
       drivers: stored.drivers,
     }),
-    [stored],
+    [stored, derivedEnd],
   );
 
   const laps = lapLog[myCar] ?? [];
@@ -80,7 +82,7 @@ export function PlanPage() {
         <h3 className="mb-3 font-bold">Race & stint rules</h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <NumberField
-            label="Race length (min)"
+            label={derivedEnd !== null ? 'Race length (min) — unused, race clock set' : 'Race length (min)'}
             value={stored.raceLengthMin}
             onChange={(v) => update({ raceLengthMin: v })}
           />
