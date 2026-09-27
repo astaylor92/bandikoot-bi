@@ -19,14 +19,16 @@ function toTime(value: unknown): number {
 }
 
 /**
- * The event's current session is the one that started most recently. The
- * isLive/endTime flags aren't reliable: Red Mist keeps a long-lived shadow
- * session (id 95) that can stay flagged live across whole weekends.
+ * Sessions newest-first by start time. The first one with cars on the board is
+ * the current session. isLive/endTime can't be trusted, and Red Mist's shadow
+ * session (id 95) can even be the most recently started — with no cars (seen
+ * on event 408 after its race ended), so emptiness has to be checked.
  */
-export function pickCurrentSession(sessions: Session[]): Session | null {
-  if (sessions.length === 0) return null;
-  return [...sessions].sort((a, b) => toTime(b.startTime) - toTime(a.startTime))[0];
+export function sessionsByRecency(sessions: Session[]): Session[] {
+  return [...sessions].sort((a, b) => toTime(b.startTime) - toTime(a.startTime));
 }
+
+const hasCars = (s: SessionState | null): s is SessionState => !!s && s.carPositions.length > 0;
 
 /**
  * Fetches the full session snapshot. Uses the authenticated live snapshot
@@ -65,13 +67,22 @@ export class SnapshotSource {
   }
 
   private async fetchPublic(): Promise<SessionState | null> {
-    if (this.sessionId === null || this.now() - this.sessionResolvedAt > SESSION_RESOLVE_MS) {
-      const sessions = await this.publicRest.loadSessions(this.eventId);
-      const current = pickCurrentSession(sessions);
-      this.sessionId = current?.id ?? null;
-      this.sessionResolvedAt = this.now();
+    const due = this.sessionId === null || this.now() - this.sessionResolvedAt > SESSION_RESOLVE_MS;
+    if (!due && this.sessionId !== null) {
+      const state = await this.publicRest.loadSessionResults(this.eventId, this.sessionId);
+      if (hasCars(state)) return state;
     }
-    if (this.sessionId === null) return null;
-    return this.publicRest.loadSessionResults(this.eventId, this.sessionId);
+    // Resolve: newest session with cars wins; remember it until the next resolve.
+    this.sessionResolvedAt = this.now();
+    const candidates = sessionsByRecency(await this.publicRest.loadSessions(this.eventId));
+    for (const session of candidates) {
+      const state = await this.publicRest.loadSessionResults(this.eventId, session.id);
+      if (hasCars(state)) {
+        this.sessionId = session.id;
+        return state;
+      }
+    }
+    this.sessionId = null;
+    return null;
   }
 }

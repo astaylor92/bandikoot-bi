@@ -26,12 +26,20 @@ The swagger file doesn't list per-endpoint auth, so auth status below was checke
 ## Live feed selection (`app/src/data/snapshotSource.ts`)
 
 1. If a broker URL is configured, try `GetCurrentSessionStateJson` with the broker's token.
-2. If there is no token or anything fails, use the public `LoadSessionResults` for the **latest-started session**.
+2. If there is no token or anything fails, use the public `LoadSessionResults` for the **newest-started session that has cars**.
    - Retry the token path every 5 minutes.
    - Re-resolve the session every 60 seconds.
 3. The header badge shows which feed is active (`· TOKEN` or `· PUBLIC`).
+4. **Freshness:** in live mode the header shows *last crossing Ns ago*, the wall-clock time since any car was seen completing a lap. A cached feed still "succeeds" on every poll, so this is the real staleness test.
+   - Under green it turns yellow at 30 s and red at 90 s. Under yellow the limits are 60 s and 180 s.
+   - Under red or checkered it never warns.
+   - Before the first crossing is seen, the value is estimated from the feed: race clock minus the most recent car crossing.
 
-**Why pick the latest-started session:** `LoadSessions` includes a shadow session **id 95** that spans whole weekends. On event 244 it stays `il: true` (live) after the race, so `isLive` and `endTime` can't be trusted.
+**Token path verified 2026-09-26:** with a broker token, `GetCurrentSessionStateJson` returned 404 (no live session); without one it returned 401. So Red Mist accepts the client-credentials token. The SignalR stream with that token is still untested.
+
+**Why not simply trust the flags or take the latest session:** `LoadSessions` includes a shadow session **id 95**.
+- On event 244 it spans the whole weekend and stays `il: true` (live) after the race, so `isLive` and `endTime` can't be trusted.
+- On event 408 (2026-09-26) it *started after the race ended* (newest start time, `il: true`) and has **0 cars**. So sessions are tried newest-first and any with no cars is skipped. The recorder's `--public` mode does the same.
 
 **Open item:** how often `LoadSessionResults` refreshes mid-race hasn't been verified. The only check happened after the 410 Sat race had ended. To verify during a live race, run:
 
