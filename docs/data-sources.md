@@ -19,7 +19,7 @@ The swagger file doesn't list per-endpoint auth, so auth status below was checke
 | `v2/Events/LoadFlags?eventId&sessionId` | public | Fixture flags |
 | `v2/Events/LoadControlLog?eventId` | public | — |
 | `v2/Events/GetCurrentSessionStateJson?eventId` | **Bearer token** (401 since ≤2026-09-26) | Live snapshot when the broker is configured |
-| `v2/Events/LoadEventCompetitorMetadata?eventId` | **Bearer token** | — (may carry driver info; untested) |
+| `v2/Events/LoadEventCompetitorMetadata?eventId` | **Bearer token** | — (returns `[]` for LDRL; see below) |
 | `v2/Events/LoadInCarPayload` | **Bearer token** | — |
 | SignalR hub `/status/event-status` | **Bearer token** | Sub-second patches (`SubscribeToEventV2`) |
 
@@ -67,6 +67,7 @@ Car positions use short JSON keys; the mapping is in `app/src/api/redmist/from-j
 
 **`dn` / `did` (driver name / id)**
 - Always empty at LDRL, because this needs in-car driver-ID hardware.
+- `LoadEventCompetitorMetadata` isn't a source either. With a valid broker token it returned **HTTP 200 with `[]`** for event 410 (checked 2026-09-27, race morning). The data comes from the organizer's Orbits system, which LDRL doesn't configure. Re-check mid-race once; if names ever appear here or in `dn`, the app could read driver changes instead of inferring them.
 - Driver changes are **inferred from stop length** (see `strategy-models.md`).
 
 **`class` (the car's class at that lap)**
