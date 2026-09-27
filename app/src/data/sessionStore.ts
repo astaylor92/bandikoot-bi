@@ -6,6 +6,7 @@ import type { CarPositionPatch } from '../api/redmist/car-position-patch';
 import { Flags } from '../api/redmist/flags';
 import { mergeSessionPatch, mergeCarPatch, emptyCarPosition, emptySessionState } from './patch';
 import { parseDurationMs } from './time';
+import type { FeedSource } from './snapshotSource';
 
 export type ConnectionStatus =
   | 'idle'
@@ -49,6 +50,7 @@ interface SessionStore {
   lapLog: Record<string, LapRecord[]>;
   connection: ConnectionStatus;
   connectionDetail: string;
+  feedSource: FeedSource | null;
   lastUpdateAt: number | null;
 
   applyFullState(state: SessionState): void;
@@ -57,6 +59,7 @@ interface SessionStore {
   seedLapLog(car: string, laps: LapRecord[]): void;
   resetSession(): void;
   setConnection(status: ConnectionStatus, detail?: string): void;
+  setFeedSource(source: FeedSource | null): void;
 }
 
 function upsertLap(log: LapRecord[] | undefined, rec: LapRecord): LapRecord[] {
@@ -79,6 +82,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   lapLog: {},
   connection: 'idle',
   connectionDetail: '',
+  feedSource: null,
   lastUpdateAt: null,
 
   applyFullState: (state) =>
@@ -170,10 +174,12 @@ export const useSessionStore = create<SessionStore>((set) => ({
       hasSession: false,
       cars: {},
       lapLog: {},
+      feedSource: null,
       lastUpdateAt: null,
     }),
 
   setConnection: (status, detail = '') => set({ connection: status, connectionDetail: detail }),
+  setFeedSource: (source) => set((prev) => (prev.feedSource === source ? prev : { feedSource: source })),
 }));
 
 // ---- Selectors -------------------------------------------------------------

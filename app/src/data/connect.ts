@@ -1,4 +1,5 @@
-import { RestClient } from '../api/restClient';
+import { RestClient, DEFAULT_API_BASE } from '../api/restClient';
+import { SnapshotSource } from './snapshotSource';
 import { TokenProvider } from '../api/tokenProvider';
 import { SignalRTransport } from '../api/signalrTransport';
 import { PollingTransport } from '../api/pollingTransport';
@@ -13,6 +14,12 @@ const rest = new RestClient();
 let active: Transport | null = null;
 let activeReplay: ReplayTransport | null = null;
 let seededSessionId: number | null = null;
+let seededAt = 0;
+let seeding = false;
+
+// Full lap history is ~5 MB for an endurance race, so it's refreshed slowly;
+// per-poll diffs fill the gaps in between.
+const RESEED_MS = 3 * 60_000;
 
 function storeHandlers(): TransportHandlers {
   const store = useSessionStore.getState();
@@ -24,6 +31,7 @@ function storeHandlers(): TransportHandlers {
     onCarPatches: (patches) => useSessionStore.getState().applyCarPatches(patches),
     onLapHistory: (car, laps) => useSessionStore.getState().seedLapLog(car, laps),
     onStatus: (status, detail) => useSessionStore.getState().setConnection(status, detail),
+    onFeedSource: (source) => useSessionStore.getState().setFeedSource(source),
     onReset: () => {
       // Keep entries/laps; the transport follows a reset with a fresh snapshot.
       void store;
@@ -32,13 +40,16 @@ function storeHandlers(): TransportHandlers {
 }
 
 /**
- * Seed the lap log from LoadSessionLaps once we know which session is
- * running. Live patch accumulation only sees laps completed while we watch;
- * this backfills everything the race has already run.
+ * Seed the lap log from LoadSessionLaps when the session changes, then
+ * re-seed every few minutes. Live accumulation only sees laps completed while
+ * we watch (and only the laps visible between polls); this backfills the rest.
  */
 async function seedLapsFromRest(eventId: number, sessionId: number): Promise<void> {
-  if (seededSessionId === sessionId) return;
+  if (seeding) return;
+  if (seededSessionId === sessionId && Date.now() - seededAt < RESEED_MS) return;
+  seeding = true;
   seededSessionId = sessionId;
+  seededAt = Date.now();
   try {
     const laps = await rest.loadSessionLaps(eventId, sessionId);
     const byCar = new Map<string, LapRecord[]>();
@@ -54,6 +65,8 @@ async function seedLapsFromRest(eventId: number, sessionId: number): Promise<voi
     for (const [car, recs] of byCar) store.seedLapLog(car, recs);
   } catch {
     seededSessionId = null; // retry on next snapshot
+  } finally {
+    seeding = false;
   }
 }
 
@@ -74,14 +87,16 @@ export async function connectLive(eventId: number, label: string): Promise<void>
 
   const { brokerUrl, teamKey } = useAppStore.getState();
   const tokens = new TokenProvider(brokerUrl, teamKey || undefined);
-  const signalr = new SignalRTransport(eventId, handlers, rest, tokens);
+  const authed = brokerUrl ? new RestClient(DEFAULT_API_BASE, () => tokens.getToken()) : null;
+  const snapshots = new SnapshotSource(eventId, rest, authed);
+  const signalr = new SignalRTransport(eventId, handlers, snapshots, tokens);
   try {
     await signalr.start();
     active = signalr;
   } catch {
     // No broker / no credentials / hub unreachable -> public REST polling.
     await signalr.stop().catch(() => {});
-    const polling = new PollingTransport(eventId, handlers, rest);
+    const polling = new PollingTransport(eventId, handlers, snapshots);
     await polling.start();
     active = polling;
   }

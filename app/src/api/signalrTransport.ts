@@ -6,7 +6,7 @@ import {
   type RetryContext,
 } from '@microsoft/signalr';
 import type { Transport, TransportHandlers } from '../data/transport';
-import type { RestClient } from './restClient';
+import type { SnapshotSource } from '../data/snapshotSource';
 import type { TokenProvider } from './tokenProvider';
 import {
   sessionStatePatchFromJson,
@@ -27,7 +27,7 @@ class InfiniteRetryPolicy implements IRetryPolicy {
  * Live transport: REST snapshot + SignalR V2 patch stream.
  *
  * Flow (mirrors RedMist.Timing.UI HubClient/LiveTimingViewModel):
- *  1. Fetch GetCurrentSessionStateJson and emit as full state.
+ *  1. Fetch the full snapshot (SnapshotSource) and emit as full state.
  *  2. Connect to the status hub (Bearer token via broker) and invoke
  *     SubscribeToEventV2(eventId).
  *  3. Apply ReceiveSessionPatch / ReceiveCarPatches (nullable-field patches).
@@ -42,7 +42,7 @@ export class SignalRTransport implements Transport {
   constructor(
     private eventId: number,
     private handlers: TransportHandlers,
-    private rest: RestClient,
+    private snapshots: SnapshotSource,
     private tokens: TokenProvider,
     private hubUrl: string = DEFAULT_HUB_URL,
   ) {}
@@ -118,7 +118,8 @@ export class SignalRTransport implements Transport {
 
   private async refreshSnapshot(): Promise<void> {
     try {
-      const state = await this.rest.getCurrentSessionState(this.eventId);
+      const { state, source } = await this.snapshots.fetch();
+      this.handlers.onFeedSource?.(source);
       if (state) this.handlers.onFullState(state);
     } catch (err) {
       this.handlers.onStatus('error', `snapshot failed: ${String(err)}`);

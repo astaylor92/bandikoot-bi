@@ -1,10 +1,10 @@
 import type { Transport, TransportHandlers } from '../data/transport';
-import type { RestClient } from './restClient';
+import type { SnapshotSource } from '../data/snapshotSource';
 
 /**
- * REST polling fallback. GetCurrentSessionStateJson is public (no auth), so
- * the app remains fully functional without broker credentials — just with
- * ~5s latency instead of the sub-second patch stream.
+ * REST polling transport. Works without broker credentials via the public
+ * LoadSessionResults fallback in SnapshotSource — ~5s latency instead of the
+ * sub-second patch stream.
  */
 export class PollingTransport implements Transport {
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -14,7 +14,7 @@ export class PollingTransport implements Transport {
   constructor(
     private eventId: number,
     private handlers: TransportHandlers,
-    private rest: RestClient,
+    private snapshots: SnapshotSource,
     private intervalMs = 5_000,
   ) {}
 
@@ -37,8 +37,9 @@ export class PollingTransport implements Transport {
 
   private async tick(): Promise<void> {
     try {
-      const state = await this.rest.getCurrentSessionState(this.eventId);
+      const { state, source } = await this.snapshots.fetch();
       if (this.stopped) return;
+      this.handlers.onFeedSource?.(source);
       if (state) {
         this.handlers.onFullState(state);
         this.handlers.onStatus('polling');
