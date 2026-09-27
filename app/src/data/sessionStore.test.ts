@@ -26,3 +26,22 @@ describe('sessionStore session changes', () => {
     expect(useSessionStore.getState().lapLog['440'].map((l) => l.lap)).toEqual([10, 11]);
   });
 });
+
+describe('lastCrossingAt', () => {
+  beforeEach(() => useSessionStore.getState().resetSession());
+
+  it('seeds from the feed clock on the first snapshot, then updates on real crossings', () => {
+    const first = { ...state(15, 10), runningRaceTime: '00:10:20' }; // last crossing 20s before the clock
+    const before = Date.now();
+    useSessionStore.getState().applyFullState(first);
+    const seeded = useSessionStore.getState().lastCrossingAt!;
+    expect(before - seeded).toBeGreaterThanOrEqual(19_000);
+    expect(before - seeded).toBeLessThan(22_000);
+
+    useSessionStore.getState().applyFullState(state(15, 10)); // no new lap
+    expect(useSessionStore.getState().lastCrossingAt).toBe(seeded);
+
+    useSessionStore.getState().applyFullState(state(15, 11));
+    expect(useSessionStore.getState().lastCrossingAt!).toBeGreaterThanOrEqual(before);
+  });
+});

@@ -13,6 +13,7 @@ import { PlanPage } from './ui/screens/PlanPage';
 import { SettingsPage } from './ui/screens/SettingsPage';
 import { RivalPage } from './ui/screens/RivalPage';
 import { RivalToast } from './ui/components/RivalToast';
+import { FreshnessBadge } from './ui/components/FreshnessBadge';
 import { formatClock, parseDurationMs } from './data/time';
 
 export default function App() {
@@ -76,7 +77,16 @@ export default function App() {
             </>
           )}
           <div className="ml-auto flex items-center gap-2">
+            {mode === 'live' && hasSession && <FreshnessBadge />}
             <ConnectionBadge />
+            {!inSession && (
+              <button
+                className={`rounded border border-pit-line px-2 py-0.5 text-sm ${view.name === 'settings' ? 'text-pit-text' : 'text-pit-dim'}`}
+                onClick={() => navigate(view.name === 'settings' ? { name: 'events' } : { name: 'settings' })}
+              >
+                {view.name === 'settings' ? 'Done' : 'Settings'}
+              </button>
+            )}
             {inSession && (
               <button className="rounded border border-pit-line px-2 py-0.5 text-sm text-pit-dim" onClick={() => void leaveSession()}>
                 Exit

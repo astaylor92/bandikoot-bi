@@ -31,6 +31,7 @@ The three transports (SignalR, polling, replay) all raise the same `TransportHan
   - `cars` holds the latest `CarPosition` for each car number.
   - `lapLog` holds a `LapRecord[]` for each car. It is appended whenever `lastLapCompleted` goes up, and merged with the `LoadSessionLaps` seed (REST data wins).
   - `feedSource` records which REST feed produced the last snapshot.
+  - `lastCrossingAt` is the wall clock when any car was last seen completing a lap. It drives the header's freshness badge (`data/freshness.ts`, `ui/components/FreshnessBadge.tsx`).
   - A new `sessionId` under the same event, such as Saturday's race moving to Sunday's, starts a fresh lap log.
   - `connect.ts` versions each connection. A lap-history download still in flight from an earlier event or session is discarded when it lands.
   - Replay scrubbing *replaces* a car's lap log (`onLapHistory`), so seeking backwards removes laps from the future. The live REST seed *merges* instead.
@@ -50,6 +51,7 @@ The pure modules in `app/src/strategy/` are described in `docs/strategy-models.m
 ## UI
 
 - There is no router. `appStore.view` selects one of Timing, Strategy, Pit Plan, Rival, Settings, or a car detail screen.
+- Settings can also be reached from the home screen header, so the broker can be set up before opening a race.
 - The pinned car ("my car") and the rivals are stored per event.
 
 ## Deployment

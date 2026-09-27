@@ -55,6 +55,8 @@ interface SessionStore {
   connectionDetail: string;
   feedSource: FeedSource | null;
   lastUpdateAt: number | null;
+  /** Wall clock when we last saw any car complete a lap (feed freshness). */
+  lastCrossingAt: number | null;
 
   applyFullState(state: SessionState): void;
   applySessionPatch(patch: SessionStatePatch): void;
@@ -88,6 +90,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   connectionDetail: '',
   feedSource: null,
   lastUpdateAt: null,
+  lastCrossingAt: null,
 
   applyFullState: (state) =>
     set((prev) => {
@@ -97,6 +100,8 @@ export const useSessionStore = create<SessionStore>((set) => ({
         prev.hasSession && !!prev.session.sessionId && !!state.sessionId && prev.session.sessionId !== state.sessionId;
       let lapLog = sessionChanged ? {} : prev.lapLog;
       const prevCars = sessionChanged ? {} : prev.cars;
+      const now = Date.now();
+      let lastCrossingAt = sessionChanged ? null : prev.lastCrossingAt;
       for (const cp of state.carPositions) {
         if (!cp.number) continue;
         cars[cp.number] = cp;
@@ -104,14 +109,17 @@ export const useSessionStore = create<SessionStore>((set) => ({
         if (cp.lastLapCompleted > (prevCar?.lastLapCompleted ?? 0)) {
           const rec = lapRecordFromCarPosition(cp);
           if (rec) lapLog = { ...lapLog, [cp.number]: upsertLap(lapLog[cp.number], rec) };
+          if (prevCar) lastCrossingAt = now;
         }
       }
+      if (lastCrossingAt === null) lastCrossingAt = seedCrossingAt(state, now);
       return {
         session: { ...state, carPositions: [] },
         hasSession: true,
         cars,
         lapLog,
-        lastUpdateAt: Date.now(),
+        lastUpdateAt: now,
+        lastCrossingAt,
       };
     }),
 
@@ -120,6 +128,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
       let session = mergeSessionPatch(prev.session, patch);
       let cars = prev.cars;
       let lapLog = prev.lapLog;
+      let crossedAt = prev.lastCrossingAt;
 
       // A session patch can carry full CarPosition objects.
       if (patch.carPositions) {
@@ -131,6 +140,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
           if (cp.lastLapCompleted > (prevCar?.lastLapCompleted ?? 0)) {
             const rec = lapRecordFromCarPosition(cp);
             if (rec) lapLog = { ...lapLog, [cp.number]: upsertLap(lapLog[cp.number], rec) };
+            if (prevCar) crossedAt = Date.now();
           }
         }
       }
@@ -145,7 +155,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
         cars = pruned;
       }
 
-      return { session, cars, lapLog, hasSession: true, lastUpdateAt: Date.now() };
+      return { session, cars, lapLog, hasSession: true, lastUpdateAt: Date.now(), lastCrossingAt: crossedAt };
     }),
 
   applyCarPatches: (patches) =>
@@ -153,6 +163,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
       if (patches.length === 0) return prev;
       const cars = { ...prev.cars };
       let lapLog = prev.lapLog;
+      let crossed = false;
       for (const patch of patches) {
         if (!patch.number) continue;
         const base = cars[patch.number] ?? emptyCarPosition(patch.number);
@@ -161,9 +172,11 @@ export const useSessionStore = create<SessionStore>((set) => ({
         if (next.lastLapCompleted > (base.lastLapCompleted ?? 0)) {
           const rec = lapRecordFromCarPosition(next);
           if (rec) lapLog = { ...lapLog, [patch.number]: upsertLap(lapLog[patch.number], rec) };
+          crossed = true;
         }
       }
-      return { cars, lapLog, lastUpdateAt: Date.now() };
+      const now = Date.now();
+      return { cars, lapLog, lastUpdateAt: now, ...(crossed ? { lastCrossingAt: now } : {}) };
     }),
 
   seedLapLog: (car, laps) =>
@@ -186,11 +199,23 @@ export const useSessionStore = create<SessionStore>((set) => ({
       lapLog: {},
       feedSource: null,
       lastUpdateAt: null,
+      lastCrossingAt: null,
     }),
 
   setConnection: (status, detail = '') => set({ connection: status, connectionDetail: detail }),
   setFeedSource: (source) => set((prev) => (prev.feedSource === source ? prev : { feedSource: source })),
 }));
+
+/**
+ * First snapshot: we haven't watched anyone cross yet, so estimate from the
+ * feed itself — race clock minus the most recent car crossing time.
+ */
+function seedCrossingAt(state: SessionState, now: number): number | null {
+  const clock = parseDurationMs(state.runningRaceTime);
+  const latest = Math.max(0, ...state.carPositions.map((c) => parseDurationMs(c.totalTime) ?? 0));
+  if (clock === null || latest === 0) return null;
+  return now - Math.max(0, clock - latest);
+}
 
 // ---- Selectors -------------------------------------------------------------
 

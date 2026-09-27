@@ -70,9 +70,13 @@ export function EventPicker() {
     <div className="mx-auto max-w-3xl space-y-4 p-4">
       <div className="text-center">
         <img
-          src={`${import.meta.env.BASE_URL}brand/hero.svg`}
-          alt="The Bandicoot flattening Randy's car"
-          className="mx-auto w-full max-w-md"
+          src={`${import.meta.env.BASE_URL}brand/hero-800.webp`}
+          srcSet={`${import.meta.env.BASE_URL}brand/hero-800.webp 800w, ${import.meta.env.BASE_URL}brand/hero-1376.webp 1376w`}
+          sizes="(min-width: 640px) 576px, 100vw"
+          width={1376}
+          height={768}
+          alt="The Bandicoot stomping Randy's car flat"
+          className="hero-fade mx-auto h-auto w-full max-w-xl"
         />
         <h1 className="font-display text-4xl font-extrabold uppercase tracking-wide sm:text-5xl">
           Suck it, <span className="text-accent">Randy</span>

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { HttpError, type RestClient } from '../api/restClient';
 import type { Session } from '../api/redmist/session';
 import type { SessionState } from '../api/redmist/session-state';
-import { SnapshotSource, pickCurrentSession } from './snapshotSource';
+import { SnapshotSource, sessionsByRecency } from './snapshotSource';
 
 function session(id: number, start: string, extra: Partial<Session> = {}): Session {
   return {
@@ -19,25 +19,23 @@ function session(id: number, start: string, extra: Partial<Session> = {}): Sessi
   };
 }
 
-const STATE = { sessionId: 15 } as SessionState;
+const STATE = { sessionId: 15, carPositions: [{}] } as unknown as SessionState;
+const EMPTY = { sessionId: 95, carPositions: [] } as unknown as SessionState;
 
 function fakeRest(overrides: Partial<Record<keyof RestClient, unknown>>): RestClient {
   return overrides as unknown as RestClient;
 }
 
-describe('pickCurrentSession', () => {
-  it('picks the latest-started session and ignores the shadow session 95', () => {
+describe('sessionsByRecency', () => {
+  it('orders by start time, ignoring the isLive flag', () => {
     // Real shape from event 244: session 95 is flagged live but started first.
-    const s = pickCurrentSession([
+    const s = sessionsByRecency([
       session(5, '2026-06-26T13:00:01'),
       session(6, '2026-06-26T13:58:53'),
       session(7, '2026-06-27T12:58:33'),
       session(95, '2026-06-26T12:09:21', { isLive: true }),
     ]);
-    expect(s?.id).toBe(7);
-  });
-  it('returns null for no sessions', () => {
-    expect(pickCurrentSession([])).toBeNull();
+    expect(s.map((x) => x.id)).toEqual([7, 6, 5, 95]);
   });
 });
 
@@ -84,6 +82,43 @@ describe('SnapshotSource', () => {
     await src.fetch();
     expect(pub.loadSessions).toHaveBeenCalledTimes(1);
     now += 61_000;
+    await src.fetch();
+    expect(pub.loadSessions).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips a newer session with no cars (shadow session 95 after the race, event 408)', async () => {
+    const results = vi.fn(async (_e: number, sid: number) => (sid === 95 ? EMPTY : STATE));
+    const pub = fakeRest({
+      loadSessions: vi.fn().mockResolvedValue([
+        session(31, '2026-09-26T12:11:13'),
+        session(95, '2026-09-26T22:47:54', { isLive: true }),
+      ]),
+      loadSessionResults: results,
+    });
+    const src = new SnapshotSource(408, pub, null);
+    expect(await src.fetch()).toEqual({ state: STATE, source: 'public' });
+    expect(results.mock.calls.map((c) => c[1])).toEqual([95, 31]);
+    await src.fetch(); // cached: goes straight to 31
+    expect(results.mock.calls.map((c) => c[1])).toEqual([95, 31, 31]);
+  });
+
+  it('when no session has cars, searches again only after a minute', async () => {
+    let now = 0;
+    const results = vi.fn().mockResolvedValue(EMPTY);
+    const pub = fakeRest({
+      loadSessions: vi.fn().mockResolvedValue([session(11, '2026-09-27T08:00:00'), session(95, '2026-09-27T07:00:00')]),
+      loadSessionResults: results,
+    });
+    const src = new SnapshotSource(410, pub, null, () => now);
+    expect((await src.fetch()).state).toBeNull();
+    expect(results).toHaveBeenCalledTimes(2);
+    for (let i = 0; i < 10; i++) {
+      now += 5_000;
+      await src.fetch();
+    }
+    expect(pub.loadSessions).toHaveBeenCalledTimes(1);
+    expect(results).toHaveBeenCalledTimes(2);
+    now += 15_000;
     await src.fetch();
     expect(pub.loadSessions).toHaveBeenCalledTimes(2);
   });
