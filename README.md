@@ -7,10 +7,18 @@ Bandicoot Motorwerks #440's pit-wall app.
 A free-to-host web app for endurance racing teams (built around Lucky Dog Racing League),
 powered by the public [Red Mist Timing & Scoring API](https://docs.redmist.racing/).
 
-Live timing board, pace analysis, projected finishing order, a target-position
-recommender ("what pace do we need for P2 in class?"), and a pit/stint planner —
-designed for a crew chief on a laptop or tablet in the pits: high contrast, big
-tabular numerals, and resilient to flaky paddock connections.
+The app includes:
+
+- a live timing board with lap-time sparklines
+- a **predicted next pit for every car**, from driver max stint and fuel window
+- inferred driver changes
+- **reclass tracking and reclass-risk hints**
+- projected finishing order (net of remaining stops)
+- a target-position recommender
+- a pit/stint planner
+- a **Rival** head-to-head with undercut/overcut calls
+
+It is designed for a crew chief on a laptop or tablet in the pits: high contrast, big tabular numerals, and resilient to flaky paddock connections.
 
 ## Quick start
 
@@ -19,17 +27,20 @@ npm run install:all        # installs app/, worker/, tools/recorder
 npm run dev                # Vite dev server → http://localhost:5173
 ```
 
-Open the app and hit **Dry Run (demo race)** — a full replay of a real 8-hour
-Lucky Dog race at VIR (38 cars, 4,400 laps) reconstructed from public lap data.
-Play, scrub, and fast-forward to practice with every feature; no credentials or
-live race required. Pin your car (☆ on the timing board) to unlock Strategy and
-Pit Plan.
+Open the app and pick a **Dry Run**: a full replay of one of five real Lucky Dog
+races (VIR, The Ridge, CMP) rebuilt from public lap data, including reclasses.
+You can play, scrub and fast-forward to practise with every feature, with no
+credentials or live race needed.
+
+On the timing board, pin your car (☆) to unlock Strategy, Pit Plan and Rival, and
+mark rivals with ⚔.
 
 ```bash
 npm test                   # strategy engine + replay engine unit tests
 npm run typecheck          # app + worker
 npm run build              # production build → app/dist
-npm run fixtures           # rebuild the demo fixture from the API
+npm run fixtures -- --all-ldrl   # refresh Dry Run fixtures from the API
+npm run backtest:reclass   # recalibrate the reclass-risk model
 ```
 
 ## Docs
@@ -39,6 +50,8 @@ npm run fixtures           # rebuild the demo fixture from the API
 - [docs/data-sources.md](docs/data-sources.md): Red Mist endpoints, auth status, field semantics
 - [docs/token-broker.md](docs/token-broker.md): optional worker for the authenticated live feed
 - [docs/strategy-models.md](docs/strategy-models.md): the models behind every prediction
+- [docs/fixtures.md](docs/fixtures.md): Dry Run fixtures and format
+- [docs/brand.md](docs/brand.md): palette, type, logo assets
 
 The app works without credentials. It polls the public results feed, and the
 token broker only upgrades it to the sub-second stream.
@@ -51,12 +64,14 @@ app/                  Vite + React + TS SPA
   src/api/            REST client, token provider, SignalR + polling transports
   src/data/           session store (zustand), patch merge, lap log, time utils
   src/replay/         replay engine + transport (Dry Run mode)
-  src/strategy/       pace, projections, target position, stint planner (+tests)
+  src/strategy/       pace, projections, stints, next pit, reclass, rival, planner (+tests)
   src/ui/             screens & components
 worker/               Cloudflare Worker token broker
 docs/                 project docs (see above)
-tools/recorder/       live patch-stream recorder
-tools/fixtures/       demo fixture builder
+tools/recorder/       live recorder (SignalR, or --public polling)
+tools/fixtures/       Dry Run fixture builder
+tools/analysis/       reclass-model backtest
+refs/                 brand source material
 ```
 
 Strategy outputs are planning estimates, not official timing. Stint rules

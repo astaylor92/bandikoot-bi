@@ -17,7 +17,11 @@ These outputs are planning estimates, not official timing. Every function lives 
 
 ## Projection (`projection.ts`, `liveInputs.ts`)
 
-- **Laps at the flag** = laps completed + (remaining race time ÷ rolling pace). Remaining race time is `raceEnd − lastCrossing`.
+- **Laps at the flag** = laps completed + (remaining race time − remaining pit time) ÷ rolling pace.
+  - Remaining race time counts from **now**. A car on track is credited at most the lap it's on; a car in the pits gets no credit.
+  - Earlier versions counted from the last crossing, so a car sitting in the pits was credited with the whole stop as driving. At VIR that turned a projected 1-lap loss into a 13-min win.
+- **Typical stop** is the median of a car's stops up to 15 min. Longer stops are red-flag holds or garage visits.
+- **Under a red flag** no car counts as parked, since nobody is crossing the line.
 - **Ranking**: cars are ranked by projected laps overall and within their **current** class.
 - **Parked cars**: a car is treated as parked if its last crossing is more than max(4 × pace, 10 min) ago.
 

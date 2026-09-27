@@ -23,6 +23,8 @@ export interface FieldIntelInput {
   nowMs: number | null;
   raceEndMs: number | null;
   classOrder: Record<string, string>;
+  /** Under a red flag nobody crosses the line, so nobody should read as parked. */
+  redFlag?: boolean;
 }
 
 /** Per-car derived intel for every car with laps. Pure; memoise at the call site. */
@@ -45,11 +47,12 @@ export function fieldIntel(input: FieldIntelInput): Record<string, CarIntel> {
             inPit: cp?.isInPit ?? false,
           })
         : null;
+    if (next && input.redFlag) next.parked = false;
     out[car] = { stints, classChanges: classHistory(laps), pace, next, reclass: null };
 
     const cls = cp?.class ?? laps[laps.length - 1]?.cls;
     const lastCross = parseDurationMs(cp?.totalTime);
-    const parked = input.nowMs !== null && isParked(input.nowMs, lastCross, pace.rollingMs, cp?.isInPit ?? false);
+    const parked = !input.redFlag && input.nowMs !== null && isParked(input.nowMs, lastCross, pace.rollingMs, cp?.isInPit ?? false);
     const snap = cls && !parked ? paceSnapshot(car, cls, laps) : null;
     if (snap) snapshots.push(snap);
   }

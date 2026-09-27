@@ -86,6 +86,12 @@ describe('calibration + projection loss', () => {
     expect(observedFuelStintMs(s)).toBe(105 * MIN);
   });
 
+  it('typical stop ignores red-flag/garage stops', () => {
+    const s = summary([stop(2 * H, 6 * MIN), stop(3 * H, 40 * MIN)]);
+    const p = predictNextPit({ ...base, stints: s, assumptions: A, nowMs: 3.5 * H, lastCrossMs: 3.5 * H });
+    expect(remainingPitLossMs(p, s, 5 * MIN)).toBe(p.remainingStops * 6 * MIN);
+  });
+
   it('remaining pit loss = remaining stops × typical stop', () => {
     const s = summary([stop(2 * H, 6 * MIN)]);
     const p = predictNextPit({ ...base, stints: s, assumptions: A, nowMs: 3 * H, lastCrossMs: 3 * H });

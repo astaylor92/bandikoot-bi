@@ -49,6 +49,8 @@ export function liveProjections(
   raceEndMs: number,
   nowMs: number | null = null,
   extraLossMsByCar?: Record<string, number>,
+  /** Under a red flag nobody crosses the line; don't treat stopped cars as parked. */
+  redFlag = false,
 ): ProjectedCar[] {
   const inputs: ProjectionCarInput[] = Object.values(data).map((d) => ({
     number: d.car.number ?? '',
@@ -58,8 +60,10 @@ export function liveProjections(
     // A car whose last crossing is long past is parked/retired — projecting its
     // historical pace across the remaining race would rank a 4-lap DNF first.
     paceMs:
-      nowMs !== null && isParked(nowMs, d.lastCrossMs, d.pace.rollingMs, d.car.isInPit) ? null : d.pace.rollingMs,
+      !redFlag && nowMs !== null && isParked(nowMs, d.lastCrossMs, d.pace.rollingMs, d.car.isInPit)
+        ? null
+        : d.pace.rollingMs,
     inPit: d.car.isInPit,
   }));
-  return projectStandings(inputs, { raceEndMs, extraLossMsByCar });
+  return projectStandings(inputs, { raceEndMs, extraLossMsByCar, nowMs });
 }

@@ -4,6 +4,7 @@ import { useStintConfig } from '../../state/appStore';
 import { carStrategyData, liveProjections, raceClock } from '../../strategy/liveInputs';
 import { remainingPitLossMs } from '../../strategy/nextPit';
 import type { CarIntel } from '../../strategy/fieldIntel';
+import { Flags } from '../../api/redmist/flags';
 
 /** Finish projections for the field, net of each car's remaining pit time. */
 export function useProjections(intel: Record<string, CarIntel>) {
@@ -21,9 +22,10 @@ export function useProjections(intel: Record<string, CarIntel>) {
     }
     return out;
   }, [intel, minPitMs]);
+  const redFlag = session.currentFlag === Flags.Red;
   const projections = useMemo(
-    () => (clock.raceEndMs !== null ? liveProjections(data, clock.raceEndMs, clock.elapsedMs, pitLoss) : []),
-    [data, clock.raceEndMs, clock.elapsedMs, pitLoss],
+    () => (clock.raceEndMs !== null ? liveProjections(data, clock.raceEndMs, clock.elapsedMs, pitLoss, redFlag) : []),
+    [data, clock.raceEndMs, clock.elapsedMs, pitLoss, redFlag],
   );
   return { data, projections, clock, minPitMs };
 }

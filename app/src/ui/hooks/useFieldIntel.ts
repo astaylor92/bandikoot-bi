@@ -3,6 +3,7 @@ import { useSessionStore } from '../../data/sessionStore';
 import { useAppStore, useCarOverrides, useDriverChangeOverrides } from '../../state/appStore';
 import { fieldIntel, type CarIntel } from '../../strategy/fieldIntel';
 import { raceClock } from '../../strategy/liveInputs';
+import { Flags } from '../../api/redmist/flags';
 
 /** Derived per-car intel (stops, driver stints, reclasses, next pit) for the whole field. */
 export function useFieldIntel(): Record<string, CarIntel> {
@@ -35,7 +36,8 @@ export function useFieldIntel(): Record<string, CarIntel> {
         nowMs: elapsedMs,
         raceEndMs,
         classOrder: session.classOrder,
+        redFlag: session.currentFlag === Flags.Red,
       }),
-    [lapLog, cars, strategy, overrides, carOverrides, elapsedMs, raceEndMs, session.classOrder],
+    [lapLog, cars, strategy, overrides, carOverrides, elapsedMs, raceEndMs, session.classOrder, session.currentFlag],
   );
 }

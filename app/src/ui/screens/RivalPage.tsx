@@ -138,7 +138,7 @@ export function RivalPage() {
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-pit-line bg-pit-panel">
-        <table className="w-full min-w-[560px] text-sm">
+        <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs uppercase text-pit-dim">
               <th className="px-3 py-2"></th>
@@ -155,7 +155,7 @@ export function RivalPage() {
           </thead>
           <tbody className="tnum">
             <Row label="Position (class)" a={pos(cars[myCar]?.classPosition)} b={pos(cars[rival]?.classPosition)} />
-            <Row label={`Last ${sparkLaps} laps`} a={<Sparkline laps={myLaps} count={sparkLaps} width={140} height={28} showRange />} b={<Sparkline laps={rivalLaps} count={sparkLaps} width={140} height={28} showRange />} />
+            <Row label={`Last ${sparkLaps} laps`} a={<Sparkline laps={myLaps} count={sparkLaps} width={110} height={28} />} b={<Sparkline laps={rivalLaps} count={sparkLaps} width={110} height={28} />} />
             <Row label="Rolling pace" a={formatLapTime(mine?.pace.rollingMs)} b={formatLapTime(theirs?.pace.rollingMs)} />
             <Row label="Best clean lap" a={formatLapTime(mine?.pace.bestMs)} b={formatLapTime(theirs?.pace.bestMs)} />
             <Row label="Trend" a={trend(mine)} b={trend(theirs)} />
@@ -218,9 +218,9 @@ function riskText(ci: CarIntel | undefined) {
 function Row({ label, a, b }: { label: string; a: React.ReactNode; b: React.ReactNode }) {
   return (
     <tr className="border-t border-pit-line">
-      <td className="px-3 py-1.5 text-xs uppercase text-pit-dim">{label}</td>
-      <td className="px-3 py-1.5">{a}</td>
-      <td className="px-3 py-1.5">{b}</td>
+      <td className="px-2 py-1.5 text-xs uppercase text-pit-dim sm:px-3">{label}</td>
+      <td className="px-2 py-1.5 sm:px-3">{a}</td>
+      <td className="px-2 py-1.5 sm:px-3">{b}</td>
     </tr>
   );
 }

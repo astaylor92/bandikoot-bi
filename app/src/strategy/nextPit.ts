@@ -1,4 +1,4 @@
-import type { StintSummary } from './stints';
+import { typicalStopMs, type StintSummary } from './stints';
 
 export interface PitAssumptions {
   maxStintMs: number;
@@ -97,7 +97,7 @@ export function predictNextPit(input: NextPitInput): NextPit {
   let remainingStops = 0;
   if (atMs !== null && raceEndMs !== null) {
     const cycle = Math.min(assumptions.maxStintMs, fuelWindow);
-    const stopMs = median(stints.stops.map((s) => s.durationMs)) ?? 0;
+    const stopMs = typicalStopMs(stints.stops, 0);
     const afterNext = raceEndMs - Math.max(atMs, nowMs) - stopMs;
     remainingStops = 1 + (cycle > 0 && Number.isFinite(cycle) ? Math.max(0, Math.ceil(afterNext / cycle) - 1) : 0);
   }
@@ -119,6 +119,5 @@ export function predictNextPit(input: NextPitInput): NextPit {
 
 /** Time a car will still lose in the pits before the flag, for finish projections. */
 export function remainingPitLossMs(next: NextPit, stints: StintSummary, minPitMs: number): number {
-  const typical = median(stints.stops.map((s) => s.durationMs)) ?? minPitMs;
-  return next.remainingStops * Math.max(typical, minPitMs);
+  return next.remainingStops * typicalStopMs(stints.stops, minPitMs);
 }

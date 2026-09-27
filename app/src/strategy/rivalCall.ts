@@ -1,7 +1,7 @@
 import type { LapRecord } from '../data/sessionStore';
 import type { NextPit } from './nextPit';
 import type { ProjectedCar } from './projection';
-import type { Stop } from './stints';
+import { typicalStopMs, type Stop } from './stints';
 
 export interface GapPoint {
   lap: number;
@@ -89,10 +89,6 @@ export interface RivalCallInput {
   rival: string;
 }
 
-function typicalStop(stops: Stop[], minPitMs: number): number {
-  const d = stops.map((s) => s.durationMs).sort((a, b) => a - b);
-  return d.length ? Math.max(minPitMs, d[d.length >> 1]) : minPitMs;
-}
 
 const WINDOW_MS = 10 * 60_000;
 
@@ -109,8 +105,8 @@ function fmt(ms: number): string {
  */
 export function rivalCall(input: RivalCallInput): RivalCall {
   const { nowMs, gapMs, myNext, rivalNext, rival } = input;
-  const theirStop = typicalStop(input.rivalStops, input.minPitMs);
-  const ourStop = typicalStop(input.myStops, input.minPitMs);
+  const theirStop = typicalStopMs(input.rivalStops, input.minPitMs);
+  const ourStop = typicalStopMs(input.myStops, input.minPitMs);
 
   const cycle = (): { cycled: number | null; lapsOut: number } => {
     if (gapMs === null) return { cycled: null, lapsOut: 0 };

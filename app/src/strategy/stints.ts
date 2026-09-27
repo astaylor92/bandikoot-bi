@@ -154,6 +154,18 @@ export function summarizeStints(
   };
 }
 
+/** Stops longer than this are red-flag holds or garage visits, not a normal stop. */
+const ROUTINE_STOP_MAX_MS = 15 * 60_000;
+
+/** Median of a car's routine stops (at least `minPitMs`), for projecting future stop cost. */
+export function typicalStopMs(stops: Stop[], minPitMs: number): number {
+  const d = stops
+    .map((s) => s.durationMs)
+    .filter((ms) => ms <= ROUTINE_STOP_MAX_MS)
+    .sort((a, b) => a - b);
+  return d.length ? Math.max(minPitMs, d[d.length >> 1]) : minPitMs;
+}
+
 export interface ClassChange {
   lap: number;
   /** Race time of the lap that first showed the new class. */
