@@ -1,5 +1,8 @@
 import { useSessionStore } from '../../data/sessionStore';
-import { useAppStore } from '../../state/appStore';
+import { useAppStore, useCarOverrides } from '../../state/appStore';
+import { NumberField } from '../components/NumberField';
+import { NextPitCell } from '../components/NextPitCell';
+import { raceClock } from '../../strategy/liveInputs';
 import { formatClock, formatLapTime } from '../../data/time';
 import { paceSummary } from '../../strategy/pace';
 import { Flags } from '../../api/redmist/flags';
@@ -13,6 +16,9 @@ export function CarDetail({ car }: { car: string }) {
   const navigate = useAppStore((s) => s.navigate);
   const setDriverChange = useAppStore((s) => s.setDriverChangeOverride);
   const intel = useFieldIntel()[car];
+  const strategy = useAppStore((s) => s.strategy);
+  const override = useCarOverrides()[car] ?? {};
+  const setOverride = useAppStore((s) => s.setCarOverride);
 
   if (!cp) {
     return <div className="p-6 text-center text-pit-dim">No data for car {car}.</div>;
@@ -61,6 +67,30 @@ export function CarDetail({ car }: { car: string }) {
           />
           <Stat label="Clean laps" value={String(pace.cleanLapCount)} />
         </div>
+      </div>
+
+      <div className="rounded-lg border border-pit-line bg-pit-panel p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="font-bold">Pit forecast</h3>
+          <NextPitCell next={intel?.next ?? null} nowMs={raceClock(session).elapsedMs} />
+        </div>
+        {intel?.next && (
+          <div className="tnum mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+            <Stat label="Driver out" value={formatClock(intel.next.driverOutMs)} />
+            <Stat label="Fuel out" value={formatClock(intel.next.fuelOutMs)} />
+            <Stat label="Stops to flag" value={String(intel.next.remainingStops)} />
+            <Stat label="Observed fuel stint" value={formatClock(intel.next.observedFuelStintMs)} />
+          </div>
+        )}
+        <div className="grid grid-cols-3 gap-2">
+          <NumberField label="Tank" suffix="gal" step={0.5} min={1} value={override.tankGal} placeholder={String(strategy.tankGal)} onCommit={(v) => setOverride(car, { tankGal: v })} />
+          <NumberField label="Burn" suffix="gal/h" step={0.1} min={0.5} value={override.gph} placeholder={String(strategy.gph)} onCommit={(v) => setOverride(car, { gph: v })} />
+          <NumberField label="Max stint" suffix="min" min={10} value={override.maxStintMin} placeholder={String(strategy.maxStintMin)} onCommit={(v) => setOverride(car, { maxStintMin: v })} />
+        </div>
+        <p className="mt-2 text-xs text-pit-dim">
+          Blank = global default (Settings). Observed fuel stint is the median track time between this car's
+          refuel stops — use it to tune tank ÷ burn.
+        </p>
       </div>
 
       <div className="rounded-lg border border-pit-line bg-pit-panel p-4">

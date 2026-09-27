@@ -29,7 +29,8 @@ function storeHandlers(): TransportHandlers {
     },
     onSessionPatch: (patch) => useSessionStore.getState().applySessionPatch(patch),
     onCarPatches: (patches) => useSessionStore.getState().applyCarPatches(patches),
-    onLapHistory: (car, laps) => useSessionStore.getState().seedLapLog(car, laps),
+    // Transports send a car's complete history (replay scrubbing), so replace rather than merge.
+    onLapHistory: (car, laps) => useSessionStore.getState().replaceLapLog(car, laps),
     onStatus: (status, detail) => useSessionStore.getState().setConnection(status, detail),
     onFeedSource: (source) => useSessionStore.getState().setFeedSource(source),
     onReset: () => {

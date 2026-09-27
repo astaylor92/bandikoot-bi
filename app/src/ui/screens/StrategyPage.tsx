@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useSessionStore } from '../../data/sessionStore';
-import { useAppStore, useMyCar, useTargetClassPos } from '../../state/appStore';
+import { useAppStore, useMyCar, useStintConfig, useTargetClassPos } from '../../state/appStore';
+import { remainingPitLossMs } from '../../strategy/nextPit';
 import { formatClock, formatLapTime } from '../../data/time';
 import { carStrategyData, liveProjections, raceClock } from '../../strategy/liveInputs';
 import { assessTarget } from '../../strategy/targetPosition';
@@ -16,13 +17,22 @@ export function StrategyPage() {
   const targetPos = useTargetClassPos();
   const setTargetPos = useAppStore((s) => s.setTargetClassPos);
   const intel = useFieldIntel();
+  const minPitMs = useStintConfig().minPitMin * 60_000;
 
   const clock = raceClock(session);
 
   const data = useMemo(() => carStrategyData(cars, lapLog), [cars, lapLog]);
+  // Cars still owing stops lose that time before the flag.
+  const pitLoss = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const [car, ci] of Object.entries(intel)) {
+      if (ci.next) out[car] = remainingPitLossMs(ci.next, ci.stints, minPitMs);
+    }
+    return out;
+  }, [intel, minPitMs]);
   const projections = useMemo(
-    () => (clock.raceEndMs !== null ? liveProjections(data, clock.raceEndMs, clock.elapsedMs) : []),
-    [data, clock.raceEndMs, clock.elapsedMs],
+    () => (clock.raceEndMs !== null ? liveProjections(data, clock.raceEndMs, clock.elapsedMs, pitLoss) : []),
+    [data, clock.raceEndMs, clock.elapsedMs, pitLoss],
   );
 
   if (!hasSession) {

@@ -60,6 +60,7 @@ interface SessionStore {
   applySessionPatch(patch: SessionStatePatch): void;
   applyCarPatches(patches: CarPositionPatch[]): void;
   seedLapLog(car: string, laps: LapRecord[]): void;
+  replaceLapLog(car: string, laps: LapRecord[]): void;
   resetSession(): void;
   setConnection(status: ConnectionStatus, detail?: string): void;
   setFeedSource(source: FeedSource | null): void;
@@ -170,6 +171,8 @@ export const useSessionStore = create<SessionStore>((set) => ({
       const merged = [...byLap.values()].sort((a, b) => a.lap - b.lap);
       return { lapLog: { ...prev.lapLog, [car]: merged } };
     }),
+
+  replaceLapLog: (car, laps) => set((prev) => ({ lapLog: { ...prev.lapLog, [car]: laps } })),
 
   resetSession: () =>
     set({

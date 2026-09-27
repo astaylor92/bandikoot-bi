@@ -58,6 +58,7 @@ export function liveProjections(
   data: Record<string, CarStrategyData>,
   raceEndMs: number,
   nowMs: number | null = null,
+  extraLossMsByCar?: Record<string, number>,
 ): ProjectedCar[] {
   const inputs: ProjectionCarInput[] = Object.values(data).map((d) => ({
     number: d.car.number ?? '',
@@ -67,5 +68,5 @@ export function liveProjections(
     paceMs: isParked(d, nowMs) ? null : d.pace.rollingMs,
     inPit: d.car.isInPit,
   }));
-  return projectStandings(inputs, { raceEndMs });
+  return projectStandings(inputs, { raceEndMs, extraLossMsByCar });
 }

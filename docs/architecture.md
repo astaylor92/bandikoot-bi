@@ -31,6 +31,8 @@ The three transports (SignalR, polling, replay) all raise the same `TransportHan
   - `cars` holds the latest `CarPosition` for each car number.
   - `lapLog` holds a `LapRecord[]` for each car. It is appended whenever `lastLapCompleted` goes up, and merged with the `LoadSessionLaps` seed (REST data wins).
   - `feedSource` records which REST feed produced the last snapshot.
+  - Replay scrubbing *replaces* a car's lap log (`onLapHistory`), so seeking backwards removes laps from the future. The live REST seed *merges* instead.
+- **`useFieldIntel()`** (`ui/hooks/useFieldIntel.ts`) runs `strategy/fieldIntel.ts` once per render cycle to build each car's stops, stints, reclasses, pace and next pit.
 - **`useAppStore`** holds navigation state and the persisted settings. Settings are saved to localStorage under `pitwall-settings`.
   - Per-event settings are keyed `${mode}:${eventId}`: pinned car, target position, stint config, rivals, per-car strategy overrides.
 

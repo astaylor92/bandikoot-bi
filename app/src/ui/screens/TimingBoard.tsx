@@ -6,6 +6,7 @@ import { ClassChip } from '../components/ClassChip';
 import { useFieldIntel } from '../hooks/useFieldIntel';
 import type { CarIntel } from '../../strategy/fieldIntel';
 import { raceClock } from '../../strategy/liveInputs';
+import { NextPitCell } from '../components/NextPitCell';
 
 /** How long a reclass stays highlighted on the board. */
 const RECENT_RECLASS_MS = 10 * 60_000;
@@ -101,7 +102,7 @@ function BoardTable({
             <th className="w-20 px-2 py-1.5 text-right">Ldr</th>
             <th className="w-12 px-2 py-1.5 text-right" title="Pit stops (loop-detected + inferred from lap time)">Pits</th>
             <th className="w-12 px-2 py-1.5 text-right" title="Driver changes (inferred from stop length)">Chg</th>
-            <th className="w-14 px-2 py-1.5"></th>
+            <th className="w-28 px-2 py-1.5 text-right" title="Predicted next stop: earlier of driver max stint and fuel window">Next pit</th>
           </tr>
         </thead>
         <tbody>
@@ -159,9 +160,7 @@ function BoardTable({
                 <td className="tnum px-2 py-1.5 text-right">{ci?.stints.stops.length ?? c.pitStopCount ?? '–'}</td>
                 <td className="tnum px-2 py-1.5 text-right">{ci ? ci.stints.driverChanges : '–'}</td>
                 <td className="px-2 py-1.5 text-right">
-                  {c.isInPit && (
-                    <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-black">PIT</span>
-                  )}
+                  <NextPitCell next={ci?.next ?? null} nowMs={elapsedMs} />
                 </td>
               </tr>
             );

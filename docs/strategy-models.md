@@ -46,6 +46,23 @@ These outputs are planning estimates, not official timing. Every function lives 
 - **Driver stints**: stints are split only at driver changes. The current stint is always open.
 - **Class history**: every lap record carries the car's class at that lap, so a change between laps is a reclass. The board highlights a reclass for 10 min, and Strategy shows a banner when *our* car is reclassed. Class projections and target position always use the current class.
 
+## Next pit (`nextPit.ts`)
+
+This runs for every car, live.
+
+- **Driver out** = when the current driver took over + max stint. Default max stint is 120 min.
+- **Fuel out** = time of the last refuel (or the green flag) + tank ÷ burn rate − reserve. Defaults are 14 gal, 5 gal/h and a 5 min reserve, giving 2:43 of usable time.
+- **Next pit** = the earlier of the two. The board shows it with a `drv`/`fuel` reason and the laps remaining at rolling pace.
+  - `IN PIT` while the car is in pit lane.
+  - `DUE` (red) once the car is past its window.
+  - `to flag` when the car should finish without stopping.
+- **Stops to flag**: the next stop plus as many as the remaining time needs, in cycles of min(max stint, fuel window).
+- **Finish projections** subtract each car's remaining stops × its median stop duration (at least the minimum pit time) from its remaining race time.
+- **Calibration**: Car detail shows the *observed fuel stint*, the median track time between refuel stops. Use it to tune a car's tank or burn override.
+- **Settings**: global defaults are on the Settings page. Per-car overrides for tank, burn and max stint are on the Car detail page.
+
+Validation on 410 Sat: at 1:40, #440 was predicted to stop at 2:00 on its driver limit. It actually pitted between about 1:57 and 2:02.
+
 ## Lucky Dog rules the models rely on
 
 | Rule | Source |
