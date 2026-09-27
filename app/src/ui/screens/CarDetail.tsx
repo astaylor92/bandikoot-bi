@@ -5,7 +5,7 @@ import { NumberField } from '../components/NumberField';
 import { NextPitCell } from '../components/NextPitCell';
 import { Sparkline } from '../components/Sparkline';
 import { ReclassCard } from '../components/ReclassCard';
-import { raceClock } from '../../strategy/liveInputs';
+import { useRaceClock } from '../hooks/useRaceClock';
 import { formatClock, formatLapTime } from '../../data/time';
 import { paceSummary } from '../../strategy/pace';
 import { Flags } from '../../api/redmist/flags';
@@ -18,6 +18,7 @@ export function CarDetail({ car }: { car: string }) {
   const session = useSessionStore((s) => s.session);
   const setDriverChange = useAppStore((s) => s.setDriverChangeOverride);
   const intel = useFieldIntel()[car];
+  const clock = useRaceClock();
   const strategy = useAppStore((s) => s.strategy);
   const override = useCarOverrides()[car] ?? {};
   const setOverride = useAppStore((s) => s.setCarOverride);
@@ -78,7 +79,7 @@ export function CarDetail({ car }: { car: string }) {
       <div className="rounded-lg border border-pit-line bg-pit-panel p-4">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="font-bold">Pit forecast</h3>
-          <NextPitCell next={intel?.next ?? null} nowMs={raceClock(session).elapsedMs} />
+          <NextPitCell next={intel?.next ?? null} nowMs={clock.elapsedMs} />
         </div>
         {intel?.next && (
           <div className="tnum mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">

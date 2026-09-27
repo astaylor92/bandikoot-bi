@@ -7,6 +7,7 @@ import { Flags } from '../api/redmist/flags';
 import { mergeSessionPatch, mergeCarPatch, emptyCarPosition, emptySessionState } from './patch';
 import { parseDurationMs } from './time';
 import type { FeedSource } from './snapshotSource';
+import type { PublishedEntry } from '../strategy/schedule';
 
 export type ConnectionStatus =
   | 'idle'
@@ -57,6 +58,8 @@ interface SessionStore {
   lastUpdateAt: number | null;
   /** Wall clock when we last saw any car complete a lap (feed freshness). */
   lastCrossingAt: number | null;
+  /** Red Mist's published schedule for the live event (null in Dry Run / unknown). */
+  published: { entries: PublishedEntry[]; tzHours: number } | null;
 
   applyFullState(state: SessionState): void;
   applySessionPatch(patch: SessionStatePatch): void;
@@ -66,6 +69,7 @@ interface SessionStore {
   resetSession(): void;
   setConnection(status: ConnectionStatus, detail?: string): void;
   setFeedSource(source: FeedSource | null): void;
+  setPublished(p: { entries: PublishedEntry[]; tzHours: number } | null): void;
 }
 
 function upsertLap(log: LapRecord[] | undefined, rec: LapRecord): LapRecord[] {
@@ -91,6 +95,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   feedSource: null,
   lastUpdateAt: null,
   lastCrossingAt: null,
+  published: null,
 
   applyFullState: (state) =>
     set((prev) => {
@@ -200,9 +205,11 @@ export const useSessionStore = create<SessionStore>((set) => ({
       feedSource: null,
       lastUpdateAt: null,
       lastCrossingAt: null,
+      published: null,
     }),
 
   setConnection: (status, detail = '') => set({ connection: status, connectionDetail: detail }),
+  setPublished: (published) => set({ published }),
   setFeedSource: (source) => set((prev) => (prev.feedSource === source ? prev : { feedSource: source })),
 }));
 

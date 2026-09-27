@@ -17,6 +17,17 @@ These outputs are planning estimates, not official timing. Every function lives 
 
 ## Projection (`projection.ts`, `liveInputs.ts`)
 
+- **Race clock, most trusted first** (`ui/hooks/useRaceClock.ts`, live events only):
+  1. **A race schedule** (`strategy/schedule.ts`): green-to-checkered windows in wall-clock time.
+     - Tapping the header clock edits it for this device.
+     - Otherwise it comes from **Red Mist's published event schedule**, which is the same on every device. The schedule times are converted with the track's time zone offset (`tz` from `LoadSessions`).
+     - A split name such as "Sun 2+5Hr" inside a 9:00–17:00 window becomes 9:00–11:00 and 12:00–17:00: the first part runs from the green, the last part to the checkered, and the gap is the break.
+     - **Each part is planned as its own race.** Time left, next pit, "to flag", stops to flag and finish projections all run to the *current* part's checkered flag. Driver and fuel clocks restart after the break on their own, because each car's first lap after it is about an hour long and counts as a stop.
+  2. A real countdown from the feed.
+  3. The session-name length ("Sun 2+5Hr" = 7 h), marked `~`.
+  4. The Pit Plan race length.
+- LDRL's feed never has a countdown (`timeToGo` is always `00:00:00`). Without the fallbacks above, every race looked finished.
+
 - **Laps at the flag** = laps completed + (remaining race time − remaining pit time) ÷ rolling pace.
   - Remaining race time counts from **now**. A car on track is credited at most the lap it's on; a car in the pits gets no credit.
   - Earlier versions counted from the last crossing, so a car sitting in the pits was credited with the whole stop as driving. At VIR that turned a projected 1-lap loss into a 13-min win.

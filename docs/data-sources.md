@@ -84,6 +84,11 @@ Car positions use short JSON keys; the mapping is in `app/src/api/redmist/from-j
 **`classColors` / `classOrder`**
 - `classColors` looks like `{"LDRL A":"#ffff7679"}`, i.e. `#AARRGGBB`. The app handles the conversion.
 
+**`timeToGo` / `lapsToGo`**
+- LDRL timing sends `timeToGo` **"00:00:00"** and `lapsToGo` **9999** for the whole race; no countdown is configured. Seen on 410 Sat, and on 410 Sun via the token feed (2026-09-27).
+- So `raceClock` (`strategy/liveInputs.ts`) treats a zero or missing countdown during a running race as unknown. It uses the race length in the session name instead ("Sun 2+5Hr" = 7 h), and failing that the Pit Plan race length. The header then shows the time left with a `~`.
+- Without this, the app thought every race had already ended: every car showed "to flag", and projections broke.
+
 ## Archived events
 
 When an event is archived (`arch: true`), `LoadSessionLaps` returns **0 laps**, but `LoadSessionResults` still returns final standings. As of 2026-09-26, every 2025-season LDRL event (58, 63, 68, 70, 78, 92, 116) is archived, so capture a fixture soon after each race (see `fixtures.md`).

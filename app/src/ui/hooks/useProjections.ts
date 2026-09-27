@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { useSessionStore } from '../../data/sessionStore';
 import { useStintConfig } from '../../state/appStore';
-import { carStrategyData, liveProjections, raceClock } from '../../strategy/liveInputs';
+import { carStrategyData, liveProjections } from '../../strategy/liveInputs';
+import { useRaceClock } from './useRaceClock';
 import { remainingPitLossMs } from '../../strategy/nextPit';
 import type { CarIntel } from '../../strategy/fieldIntel';
 import { Flags } from '../../api/redmist/flags';
@@ -12,7 +13,7 @@ export function useProjections(intel: Record<string, CarIntel>) {
   const cars = useSessionStore((s) => s.cars);
   const lapLog = useSessionStore((s) => s.lapLog);
   const minPitMs = useStintConfig().minPitMin * 60_000;
-  const clock = raceClock(session);
+  const clock = useRaceClock();
 
   const data = useMemo(() => carStrategyData(cars, lapLog), [cars, lapLog]);
   const pitLoss = useMemo(() => {

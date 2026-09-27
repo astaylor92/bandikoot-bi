@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { ReplayProgress } from '../replay/replayTransport';
+import type { RaceSegment } from '../strategy/schedule';
 
 export type View =
   | { name: 'events' }
@@ -88,6 +89,8 @@ interface AppStore {
   driverChangeOverridesByEvent: Record<string, Record<string, Record<number, boolean>>>;
   /** event key -> rival car numbers, primary first (max 3) */
   rivalsByEvent: Record<string, string[]>;
+  /** event key -> this device's manual race schedule (overrides Red Mist's published one) */
+  scheduleOverrideByEvent: Record<string, RaceSegment[]>;
 
   navigate(view: View): void;
   setSession(mode: SessionMode, eventId: number | null, label?: string): void;
@@ -101,6 +104,7 @@ interface AppStore {
   setCarOverride(car: string, patch: CarOverride | null): void;
   setDriverChangeOverride(car: string, lap: number, value: boolean | null): void;
   toggleRival(car: string): void;
+  setScheduleOverride(segments: RaceSegment[] | null): void;
   setPrimaryRival(car: string): void;
 }
 
@@ -127,6 +131,7 @@ export const useAppStore = create<AppStore>()(
       carOverridesByEvent: {},
       driverChangeOverridesByEvent: {},
       rivalsByEvent: {},
+      scheduleOverrideByEvent: {},
 
       navigate: (view) => set({ view }),
       setSession: (mode, eventId, label = '') =>
@@ -165,6 +170,14 @@ export const useAppStore = create<AppStore>()(
         cars[car] = laps;
         set({ driverChangeOverridesByEvent: { ...driverChangeOverridesByEvent, [key]: cars } });
       },
+      setScheduleOverride: (segments) => {
+        const { mode, eventId, scheduleOverrideByEvent } = get();
+        const key = eventKey(mode, eventId);
+        const next = { ...scheduleOverrideByEvent };
+        if (segments === null) delete next[key];
+        else next[key] = segments;
+        set({ scheduleOverrideByEvent: next });
+      },
       toggleRival: (car) => {
         const { mode, eventId, rivalsByEvent } = get();
         const key = eventKey(mode, eventId);
@@ -197,6 +210,7 @@ export const useAppStore = create<AppStore>()(
         carOverridesByEvent: s.carOverridesByEvent,
         driverChangeOverridesByEvent: s.driverChangeOverridesByEvent,
         rivalsByEvent: s.rivalsByEvent,
+        scheduleOverrideByEvent: s.scheduleOverrideByEvent,
       }),
       // Older saved settings lack newer fields; fill them from defaults.
       merge: (persisted, current) => {
@@ -234,4 +248,10 @@ export function useDriverChangeOverrides(): Record<string, Record<number, boolea
 
 export function useRivals(): string[] {
   return useAppStore((s) => s.rivalsByEvent[eventKey(s.mode, s.eventId)] ?? NO_RIVALS);
+}
+
+const NO_SCHEDULE: RaceSegment[] | null = null;
+
+export function useScheduleOverride(): RaceSegment[] | null {
+  return useAppStore((s) => s.scheduleOverrideByEvent[eventKey(s.mode, s.eventId)] ?? NO_SCHEDULE);
 }

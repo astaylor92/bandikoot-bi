@@ -83,6 +83,25 @@ async function seedLapsFromRest(eventId: number, sessionId: number): Promise<voi
   }
 }
 
+/** Red Mist's published event schedule + track time zone, for the race clock. Best effort. */
+async function loadPublishedSchedule(eventId: number): Promise<void> {
+  const gen = generation;
+  try {
+    const [event, sessions] = await Promise.all([rest.loadEvent(eventId), rest.loadSessions(eventId)]);
+    if (gen !== generation || !event?.schedule) return;
+    const tzHours = sessions.find((s) => typeof s.localTimeZoneOffset === 'number')?.localTimeZoneOffset ?? 0;
+    const entries = event.schedule.entries.map((e) => ({
+      day: String(e.dayOfEvent),
+      start: String(e.startTime),
+      end: String(e.endTime),
+      name: e.name,
+    }));
+    useSessionStore.getState().setPublished({ entries, tzHours });
+  } catch {
+    // No schedule: the clock falls back to the session name / Pit Plan length.
+  }
+}
+
 export async function connectLive(eventId: number, label: string): Promise<void> {
   await disconnect();
   useSessionStore.getState().resetSession();
@@ -97,6 +116,8 @@ export async function connectLive(eventId: number, label: string): Promise<void>
       if (state.sessionId) void seedLapsFromRest(eventId, state.sessionId);
     },
   };
+
+  void loadPublishedSchedule(eventId);
 
   const { brokerUrl, teamKey } = useAppStore.getState();
   const tokens = new TokenProvider(brokerUrl, teamKey || undefined);

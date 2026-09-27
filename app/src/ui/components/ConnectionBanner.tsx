@@ -39,6 +39,7 @@ export function ConnectionBanner() {
 }
 
 const FEED_LABEL: Record<FeedSource, string> = { token: 'TOKEN', public: 'PUBLIC', 'public-laps': 'PUBLIC LAPS' };
+const FEED_SHORT: Record<FeedSource, string> = { token: 'TOKEN', public: 'PUBLIC', 'public-laps': 'LAPS' };
 const FEED_TITLE: Record<FeedSource, string> = {
   token: 'Authenticated live snapshot via token broker',
   public: 'Public results feed (no token) — ~5s updates',
@@ -66,8 +67,16 @@ export function ConnectionBadge() {
       className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-bold ${s.cls}`}
       title={feedSource ? FEED_TITLE[feedSource] : undefined}
     >
-      {s.label}
-      {showSource ? ` · ${FEED_LABEL[feedSource]}` : ''}
+      {showSource ? (
+        <>
+          {/* Phones: just the feed; the colour still shows live/polling. */}
+          <span className="hidden sm:inline">{s.label} · </span>
+          <span className="sm:hidden">{FEED_SHORT[feedSource]}</span>
+          <span className="hidden sm:inline">{FEED_LABEL[feedSource]}</span>
+        </>
+      ) : (
+        s.label
+      )}
     </span>
   );
 }

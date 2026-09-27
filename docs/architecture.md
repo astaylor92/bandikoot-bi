@@ -52,6 +52,7 @@ The pure modules in `app/src/strategy/` are described in `docs/strategy-models.m
 
 - There is no router. `appStore.view` selects one of Timing, Strategy, Pit Plan, Rival, Settings, or a car detail screen.
 - Settings can also be reached from the home screen header, so the broker can be set up before opening a race.
+- **Race clock** (header): tap it to edit the race schedule. The schedule is filled in from Red Mist's published event schedule (`sessionStore.published`, loaded on live connect); a manual override is saved per device (`appStore.scheduleOverrideByEvent`). See `strategy-models.md`.
 - The home screen refreshes the Red Mist event list every 30 s, so races that go live later appear without a reload. While not in a race, the header pill shows the list's status (`LOADING RACES…`, `N LIVE`, `NO LIVE RACES`, `CAN'T REACH RED MIST`) from `appStore.eventsStatus`.
 - **Browser history** (`state/navHistory.ts`): each screen change adds a hash URL (`#/board`, `#/car/440`, `#/rival`, …) so Back, Forward and swipe-back work.
   - GitHub Pages can't rewrite real paths, hence the hash.
