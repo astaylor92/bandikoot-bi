@@ -20,6 +20,7 @@ function carWithLaps(number: string, cls: string, lapMs: number, count: number) 
     pit: false,
     overallPosition: 1,
     classPosition: 1,
+    cls: null,
   }));
   return { cp, laps };
 }

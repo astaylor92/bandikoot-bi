@@ -27,6 +27,8 @@ export interface LapRecord {
   pit: boolean;
   overallPosition: number;
   classPosition: number;
+  /** The car's class when this lap completed (reclasses show up as changes). */
+  cls: string | null;
 }
 
 export function lapRecordFromCarPosition(cp: CarPosition): LapRecord | null {
@@ -40,6 +42,7 @@ export function lapRecordFromCarPosition(cp: CarPosition): LapRecord | null {
     pit: cp.lapIncludedPit,
     overallPosition: cp.overallPosition,
     classPosition: cp.classPosition,
+    cls: cp.class,
   };
 }
 

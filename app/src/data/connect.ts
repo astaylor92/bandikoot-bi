@@ -4,7 +4,7 @@ import { TokenProvider } from '../api/tokenProvider';
 import { SignalRTransport } from '../api/signalrTransport';
 import { PollingTransport } from '../api/pollingTransport';
 import { ReplayTransport } from '../replay/replayTransport';
-import type { LapReplayFixture } from '../replay/fixture';
+import { SUPPORTED_FIXTURE_FORMATS, type LapReplayFixture } from '../replay/fixture';
 import type { Transport, TransportHandlers } from './transport';
 import { useSessionStore, lapRecordFromCarPosition, type LapRecord } from './sessionStore';
 import { useAppStore } from '../state/appStore';
@@ -109,7 +109,7 @@ export async function connectReplay(fixtureUrl: string, label: string): Promise<
   const res = await fetch(fixtureUrl);
   if (!res.ok) throw new Error(`Failed to load replay fixture: HTTP ${res.status}`);
   const fixture = (await res.json()) as LapReplayFixture;
-  if (fixture.format !== 'redmist-replay/laps@1') {
+  if (!(SUPPORTED_FIXTURE_FORMATS as readonly string[]).includes(fixture.format)) {
     throw new Error(`Unsupported fixture format: ${String(fixture.format)}`);
   }
 

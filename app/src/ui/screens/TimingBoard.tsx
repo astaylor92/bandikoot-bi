@@ -3,6 +3,12 @@ import type { CarPosition } from '../../api/redmist/car-position';
 import { selectClassGroups, selectOverallOrder, useSessionStore } from '../../data/sessionStore';
 import { useAppStore, useMyCar } from '../../state/appStore';
 import { ClassChip } from '../components/ClassChip';
+import { useFieldIntel } from '../hooks/useFieldIntel';
+import type { CarIntel } from '../../strategy/fieldIntel';
+import { raceClock } from '../../strategy/liveInputs';
+
+/** How long a reclass stays highlighted on the board. */
+const RECENT_RECLASS_MS = 10 * 60_000;
 
 export function TimingBoard() {
   const cars = useSessionStore((s) => s.cars);
@@ -10,6 +16,8 @@ export function TimingBoard() {
   const hasSession = useSessionStore((s) => s.hasSession);
   const [byClass, setByClass] = useState(true);
   const myCar = useMyCar();
+  const intel = useFieldIntel();
+  const elapsedMs = raceClock(session).elapsedMs;
 
   if (!hasSession) {
     return <div className="p-6 text-center text-pit-dim">Waiting for session data…</div>;
@@ -44,11 +52,11 @@ export function TimingBoard() {
               <ClassChip cls={g.className} classColors={session.classColors} />
               <span className="text-sm font-bold text-pit-dim">{g.className}</span>
             </div>
-            <BoardTable cars={g.cars} teamByNo={teamByNo} myCar={myCar} classColors={session.classColors} showClass={false} posOf={(c) => c.classPosition} />
+            <BoardTable cars={g.cars} teamByNo={teamByNo} myCar={myCar} classColors={session.classColors} showClass={false} posOf={(c) => c.classPosition} intel={intel} elapsedMs={elapsedMs} />
           </div>
         ))
       ) : (
-        <BoardTable cars={selectOverallOrder(cars)} teamByNo={teamByNo} myCar={myCar} classColors={session.classColors} showClass posOf={(c) => c.overallPosition} />
+        <BoardTable cars={selectOverallOrder(cars)} teamByNo={teamByNo} myCar={myCar} classColors={session.classColors} showClass posOf={(c) => c.overallPosition} intel={intel} elapsedMs={elapsedMs} />
       )}
     </div>
   );
@@ -61,6 +69,8 @@ function BoardTable({
   classColors,
   showClass,
   posOf,
+  intel,
+  elapsedMs,
 }: {
   cars: CarPosition[];
   teamByNo: Map<string, string>;
@@ -68,6 +78,8 @@ function BoardTable({
   classColors: Record<string, string>;
   showClass: boolean;
   posOf: (c: CarPosition) => number;
+  intel: Record<string, CarIntel>;
+  elapsedMs: number | null;
 }) {
   const navigate = useAppStore((s) => s.navigate);
   const setMyCar = useAppStore((s) => s.setMyCar);
@@ -87,7 +99,8 @@ function BoardTable({
             <th className="w-20 px-2 py-1.5 text-right">Best</th>
             <th className="w-20 px-2 py-1.5 text-right">Gap</th>
             <th className="w-20 px-2 py-1.5 text-right">Ldr</th>
-            <th className="w-12 px-2 py-1.5 text-right">Pits</th>
+            <th className="w-12 px-2 py-1.5 text-right" title="Pit stops (loop-detected + inferred from lap time)">Pits</th>
+            <th className="w-12 px-2 py-1.5 text-right" title="Driver changes (inferred from stop length)">Chg</th>
             <th className="w-14 px-2 py-1.5"></th>
           </tr>
         </thead>
@@ -95,6 +108,12 @@ function BoardTable({
           {cars.map((c) => {
             const num = c.number ?? '';
             const mine = num === myCar;
+            const ci = intel[num];
+            const lastReclass = ci?.classChanges[ci.classChanges.length - 1];
+            const recentReclass =
+              lastReclass && lastReclass.atMs !== null && elapsedMs !== null && elapsedMs - lastReclass.atMs < RECENT_RECLASS_MS
+                ? lastReclass
+                : null;
             return (
               <tr
                 key={num}
@@ -119,7 +138,17 @@ function BoardTable({
                     <ClassChip cls={c.class} classColors={classColors} />
                   </td>
                 )}
-                <td className="max-w-[180px] truncate px-2 py-1.5">{teamByNo.get(num) ?? ''}</td>
+                <td className="max-w-[220px] truncate px-2 py-1.5">
+                  {recentReclass && (
+                    <span
+                      className="mr-1.5 rounded bg-miami-light px-1 py-0.5 text-xs font-bold text-black"
+                      title={`Reclassed ${recentReclass.from} → ${recentReclass.to}`}
+                    >
+                      ↻ {shortCls(recentReclass.from)}→{shortCls(recentReclass.to)}
+                    </span>
+                  )}
+                  {teamByNo.get(num) ?? ''}
+                </td>
                 <td className="tnum px-2 py-1.5 text-right">{c.lastLapCompleted || '–'}</td>
                 <td className="tnum px-2 py-1.5 text-right">{shortTime(c.lastLapTime)}</td>
                 <td className={`tnum px-2 py-1.5 text-right ${c.isBestTimeClass ? 'text-purple-400' : ''}`}>
@@ -127,7 +156,8 @@ function BoardTable({
                 </td>
                 <td className="tnum px-2 py-1.5 text-right text-pit-dim">{shortGap(c.overallGap)}</td>
                 <td className="tnum px-2 py-1.5 text-right text-pit-dim">{shortGap(c.overallDifference)}</td>
-                <td className="tnum px-2 py-1.5 text-right">{c.pitStopCount ?? '–'}</td>
+                <td className="tnum px-2 py-1.5 text-right">{c.pitStopCount ?? ci?.stints.stops.length ?? '–'}</td>
+                <td className="tnum px-2 py-1.5 text-right">{ci ? ci.stints.driverChanges : '–'}</td>
                 <td className="px-2 py-1.5 text-right">
                   {c.isInPit && (
                     <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-black">PIT</span>
@@ -140,6 +170,10 @@ function BoardTable({
       </table>
     </div>
   );
+}
+
+function shortCls(cls: string): string {
+  return cls.replace(/^LDRL\s*/i, '');
 }
 
 function shortTime(t: string | null | undefined): string {

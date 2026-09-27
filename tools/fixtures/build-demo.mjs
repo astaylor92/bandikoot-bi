@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Builds a Dry Run replay fixture (redmist-replay/laps@1) from a completed
+// Builds a Dry Run replay fixture (redmist-replay/laps@2) from a completed
 // Red Mist event using only public REST endpoints:
 //   LoadSessions, LoadSessionLaps, LoadFlags, LoadSessionResults
 //
@@ -85,13 +85,23 @@ for (const lap of lapsRaw ?? []) {
   const ltm = durMs(lap.ltm);
   const ttm = durMs(lap.ttm);
   if (!lap.n || !lap.llp || ltm === null || ttm === null || ttm <= 0) continue;
-  if (!byCar.has(lap.n)) byCar.set(lap.n, { cls: lap.class ?? '', laps: [] });
-  byCar.get(lap.n).laps.push([lap.llp, ltm, ttm, lap.flg ?? 0, lap.lip ? 1 : 0]);
+  if (!byCar.has(lap.n)) byCar.set(lap.n, { cls: '', laps: [], clsByLap: new Map(), cc: [] });
+  const car = byCar.get(lap.n);
+  car.laps.push([lap.llp, ltm, ttm, lap.flg ?? 0, lap.lip ? 1 : 0]);
+  car.clsByLap.set(lap.llp, lap.class ?? '');
 }
 for (const car of byCar.values()) {
   car.laps.sort((a, b) => a[0] - b[0]);
   // Drop duplicate lap numbers (data hiccups), keep the last occurrence.
   car.laps = car.laps.filter((l, i, arr) => i === arr.length - 1 || l[0] !== arr[i + 1][0]);
+  // Each lap record carries the class at that time, so reclasses are recoverable.
+  let prev = null;
+  for (const [lapNo] of car.laps) {
+    const cls = car.clsByLap.get(lapNo) || prev || '';
+    if (prev === null) car.cls = cls;
+    else if (cls !== prev) car.cc.push([lapNo, cls]);
+    prev = cls;
+  }
 }
 
 const entries = (results?.eventEntries ?? [])
@@ -108,7 +118,7 @@ const classColors = results?.classColors ?? Object.fromEntries(classes.map((c, i
 const classOrder = results?.classOrder ?? Object.fromEntries(classes.map((c, i) => [c, String(i + 1)]));
 
 const fixture = {
-  format: 'redmist-replay/laps@1',
+  format: 'redmist-replay/laps@2',
   eventId,
   eventName: results?.eventName ?? event?.n ?? `Event ${eventId}`,
   sessionId,
@@ -121,12 +131,13 @@ const fixture = {
   classOrder,
   entries,
   flags,
-  cars: [...byCar.entries()].map(([n, c]) => ({ n, c: c.cls, laps: c.laps })),
+  cars: [...byCar.entries()].map(([n, c]) => ({ n, c: c.cls, laps: c.laps, ...(c.cc.length ? { cc: c.cc } : {}) })),
 };
 
 mkdirSync(dirname(outPath), { recursive: true });
 writeFileSync(outPath, JSON.stringify(fixture));
 const totalLaps = [...byCar.values()].reduce((s, c) => s + c.laps.length, 0);
+const reclasses = [...byCar.values()].reduce((s, c) => s + c.cc.length, 0);
 console.log(
-  `Wrote ${outPath}: ${byCar.size} cars, ${totalLaps} laps, ${(durationMs / 3_600_000).toFixed(2)}h, ${flags.length} flag periods`,
+  `Wrote ${outPath}: ${byCar.size} cars, ${totalLaps} laps, ${reclasses} reclasses, ${(durationMs / 3_600_000).toFixed(2)}h, ${flags.length} flag periods`,
 );

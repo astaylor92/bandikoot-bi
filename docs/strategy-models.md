@@ -33,6 +33,19 @@ These outputs are planning estimates, not official timing. Every function lives 
 - **`stintStatus`**: shows the current stint's age and the must-pit-by time.
 - **`pitDecision`**: returns pit-now, stay-out or must-pit.
 
+## Stops, driver changes, reclasses (`stints.ts`)
+
+- **Reference pace**: the car's median green lap time, excluding pit laps.
+- **Stop**: a lap that is slower than the reference pace by the *stop duration*. This covers two cases:
+  - A pit-flagged lap (`lip`) that is at least 90 s over pace. Anything shorter is a drive-through or penalty, not a stop.
+  - An **unflagged** green or yellow lap that is at least 4 min over pace. This is an *inferred* stop. At LDRL 410, the pit loop missed about 40 real stops; car 203 has no pit flags at all, yet it clearly stopped around 1:52, 3:36 and 5:05.
+  - Red-flag laps never count as stops.
+  - A stop that spans consecutive laps is merged into one.
+- **Driver change**: a stop of at least `driverChangeMinStopMin`, default 4 min. The team can correct any stop in Car detail; corrections persist per event.
+- **Refuel**: a stop of at least `refuelMinStopMin`, default 4 min.
+- **Driver stints**: stints are split only at driver changes. The current stint is always open.
+- **Class history**: every lap record carries the car's class at that lap, so a change between laps is a reclass. The board highlights a reclass for 10 min, and Strategy shows a banner when *our* car is reclassed. Class projections and target position always use the current class.
+
 ## Lucky Dog rules the models rely on
 
 | Rule | Source |

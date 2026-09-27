@@ -19,6 +19,8 @@ interface CarSim {
   bestLapNo: number[];
   /** Running count of pit laps up to and including index i. */
   pitCount: number[];
+  /** Class in effect after completing lap index i. */
+  clsAt: string[];
 }
 
 /** Binary search: number of laps completed at time t. */
@@ -55,7 +57,10 @@ export class ReplayEngine {
         bestMs: [],
         bestLapNo: [],
         pitCount: [],
+        clsAt: [],
       };
+      const changes = new Map((car.cc ?? []).map(([lap, cls]) => [lap, cls]));
+      let cls = car.c;
       let best = Number.MAX_SAFE_INTEGER;
       let bestLap = 0;
       let pits = 0;
@@ -65,6 +70,8 @@ export class ReplayEngine {
           bestLap = car.laps[i][0];
         }
         if (sim.pit[i]) pits++;
+        cls = changes.get(car.laps[i][0]) ?? cls;
+        sim.clsAt.push(cls);
         sim.bestMs.push(best);
         sim.bestLapNo.push(bestLap);
         sim.pitCount.push(pits);
@@ -106,6 +113,7 @@ export class ReplayEngine {
         pit: sim.pit[i] === 1,
         overallPosition: 0,
         classPosition: 0,
+        cls: sim.clsAt[i],
       });
     }
     return out;
@@ -118,10 +126,16 @@ export class ReplayEngine {
       sim: CarSim;
       laps: number;
       lastCross: number;
+      cls: string;
     }
     const ranked: Ranked[] = this.cars.map((sim) => {
       const laps = lapsAt(sim.crossMs, t);
-      return { sim, laps, lastCross: laps > 0 ? sim.crossMs[laps - 1] : Number.MAX_SAFE_INTEGER };
+      return {
+        sim,
+        laps,
+        lastCross: laps > 0 ? sim.crossMs[laps - 1] : Number.MAX_SAFE_INTEGER,
+        cls: laps > 0 ? sim.clsAt[laps - 1] : sim.cls,
+      };
     });
     ranked.sort(
       (a, b) => b.laps - a.laps || a.lastCross - b.lastCross || a.sim.number.localeCompare(b.sim.number),
@@ -145,11 +159,11 @@ export class ReplayEngine {
       const cp = emptyCarPosition(sim.number);
       cp.eventId = String(this.fixture.eventId);
       cp.sessionId = String(this.fixture.sessionId);
-      cp.class = sim.cls;
+      cp.class = r.cls;
       cp.overallPosition = i + 1;
       cp.trackFlag = flag;
 
-      const cls = sim.cls || 'Unclassified';
+      const cls = r.cls || 'Unclassified';
       const rankInfo = classRank.get(cls) ?? { count: 0, leader: null, ahead: null };
       rankInfo.count++;
       cp.classPosition = rankInfo.count;
