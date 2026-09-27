@@ -87,6 +87,7 @@ export const useAppStore = create<AppStore>()(
       },
     }),
     {
+      // Pre-rebrand key kept on purpose: renaming it would wipe everyone's saved settings.
       name: 'pitwall-settings',
       partialize: (s) => ({
         brokerUrl: s.brokerUrl,

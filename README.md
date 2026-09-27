@@ -1,4 +1,8 @@
-# Pit Wall — Live Race Timing & Strategy
+# SUCK IT, RANDY — Live Race Timing & Strategy
+
+![The Bandicoot flattening Randy's car](app/public/brand/hero.svg)
+
+Bandicoot Motorwerks #440's pit-wall app.
 
 A free-to-host web app for endurance racing teams (built around Lucky Dog Racing League),
 powered by the public [Red Mist Timing & Scoring API](https://docs.redmist.racing/).

@@ -1,16 +1,13 @@
 {
-  "name": "Pit Wall — Live Race Timing & Strategy",
-  "short_name": "Pit Wall",
+  "name": "SUCK IT, RANDY — Live Race Timing & Strategy",
+  "short_name": "SUCK IT RANDY",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#0a0a0f",
+  "background_color": "#121619",
+  "theme_color": "#121619",
   "icons": [
-    {
-      "src": "./icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "./brand/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }

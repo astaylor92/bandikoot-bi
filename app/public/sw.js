@@ -1,9 +1,9 @@
 // Minimal app-shell cache: static assets cache-first, API requests untouched.
-const CACHE = 'pitwall-shell-v1';
+const CACHE = 'suckitrandy-shell-v2';
 
 self.addEventListener('install', (event) => {
   // Relative to the SW scope so the app works from a subpath (GitHub Pages).
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest', './icon.svg'])));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest', './icon.svg', './brand/bandicoot.png'])));
   self.skipWaiting();
 });
 

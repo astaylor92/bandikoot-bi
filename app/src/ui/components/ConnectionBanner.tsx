@@ -52,7 +52,7 @@ export function ConnectionBadge() {
   const showSource = feedSource && (connection === 'live' || connection === 'polling');
   return (
     <span
-      className={`rounded px-2 py-0.5 text-xs font-bold ${s.cls}`}
+      className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-bold ${s.cls}`}
       title={
         feedSource === 'public'
           ? 'Public results feed (no token) — ~5s updates'

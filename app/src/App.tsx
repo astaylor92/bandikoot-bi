@@ -57,8 +57,11 @@ export default function App() {
       <header className="border-b border-pit-line bg-pit-panel">
         <div className="flex items-center gap-3 px-3 py-2">
           <button className="text-left" onClick={() => (inSession ? navigate({ name: 'board' }) : navigate({ name: 'events' }))}>
-            <span className="text-lg font-black tracking-tight">
-              PIT<span className="text-accent">WALL</span>
+            <span className="flex items-center gap-2">
+              <img src={`${import.meta.env.BASE_URL}brand/bandicoot.png`} alt="" className="h-7 w-auto shrink-0" />
+              <span className="font-display text-lg font-extrabold uppercase tracking-wide whitespace-nowrap sm:text-xl">
+                Suck it, <span className="text-accent">Randy</span>
+              </span>
             </span>
           </button>
           {inSession && hasSession && (

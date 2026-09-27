@@ -46,6 +46,17 @@ export function EventPicker() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
+      <div className="text-center">
+        <img
+          src={`${import.meta.env.BASE_URL}brand/hero.svg`}
+          alt="The Bandicoot flattening Randy's car"
+          className="mx-auto w-full max-w-md"
+        />
+        <h1 className="font-display text-4xl font-extrabold uppercase tracking-wide sm:text-5xl">
+          Suck it, <span className="text-accent">Randy</span>
+        </h1>
+        <p className="text-sm text-pit-dim">Bandicoot Motorwerks #440 · live timing &amp; strategy</p>
+      </div>
       <button
         onClick={openDryRun}
         disabled={busy !== ''}
