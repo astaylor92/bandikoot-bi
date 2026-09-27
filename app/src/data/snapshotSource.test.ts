@@ -106,7 +106,12 @@ describe('SnapshotSource', () => {
     let now = 0;
     const results = vi.fn().mockResolvedValue(EMPTY);
     const pub = fakeRest({
-      loadSessions: vi.fn().mockResolvedValue([session(11, '2026-09-27T08:00:00'), session(95, '2026-09-27T07:00:00')]),
+      loadSessions: vi
+        .fn()
+        .mockResolvedValue([
+          session(11, '2026-09-27T08:00:00', { endTime: '2026-09-27T09:00:00' as unknown as Date }),
+          session(95, '2026-09-27T07:00:00'),
+        ]),
       loadSessionResults: results,
     });
     const src = new SnapshotSource(410, pub, null, () => now);
@@ -121,6 +126,59 @@ describe('SnapshotSource', () => {
     now += 15_000;
     await src.fetch();
     expect(pub.loadSessions).toHaveBeenCalledTimes(2);
+  });
+
+  describe('running session (public results are empty mid-race)', () => {
+    const sat = session(15, '2026-09-26T14:01:08', { endTime: '2026-09-26T21:03:38' as unknown as Date });
+    const sun = session(16, '2026-09-27T12:59:30', { name: 'Sunday 2+5Hr' });
+    const SAT_RESULTS = {
+      sessionId: 15,
+      eventName: 'LDRL - Southern Dawg Delight 2026',
+      carPositions: [{}],
+      eventEntries: [{ number: '440', name: 'Bandicoot Motor Werks', team: '', class: 'LDRL B' }],
+      classColors: { 'LDRL B': '#ffffb05b' },
+      classOrder: { 'LDRL B': '2' },
+    } as unknown as SessionState;
+    const lap = (n: string, llp: number, ttm: string) =>
+      ({ number: n, lastLapCompleted: llp, totalTime: ttm, trackFlag: 1 }) as unknown as import('../api/redmist/car-position').CarPosition;
+
+    it('builds the board from live laps, with team names from the finished session, and never shows Saturday', async () => {
+      let now = 0;
+      const laps = vi.fn().mockResolvedValue([lap('440', 2, '00:04:10.000'), lap('440', 3, '00:06:15.000'), lap('07', 3, '00:06:20.000')]);
+      const pub = fakeRest({
+        loadSessions: vi.fn().mockResolvedValue([sat, sun]),
+        loadSessionResults: vi.fn(async (_e: number, sid: number) => (sid === 16 ? null : SAT_RESULTS)),
+        loadSessionLaps: laps,
+      });
+      const src = new SnapshotSource(410, pub, null, () => now);
+      const snap = await src.fetch();
+      expect(snap.source).toBe('public-laps');
+      expect(snap.state!.sessionId).toBe(16);
+      expect(snap.state!.carPositions.map((c) => [c.number, c.lastLapCompleted])).toEqual([
+        ['440', 3],
+        ['07', 3],
+      ]);
+      expect(snap.state!.runningRaceTime).toBe('00:06:20');
+      expect(snap.state!.timeToGo).toBe('06:53:40'); // "2+5Hr" = 7 h
+      expect(snap.state!.eventEntries[0].name).toBe('Bandicoot Motor Werks');
+
+      now += 5_000;
+      await src.fetch();
+      expect(laps).toHaveBeenCalledTimes(1); // throttled
+      now += 20_000;
+      await src.fetch();
+      expect(laps).toHaveBeenCalledTimes(2);
+    });
+
+    it('waits (null) rather than showing an older race before the first crossing', async () => {
+      const pub = fakeRest({
+        loadSessions: vi.fn().mockResolvedValue([sat, sun]),
+        loadSessionResults: vi.fn(async (_e: number, sid: number) => (sid === 16 ? null : SAT_RESULTS)),
+        loadSessionLaps: vi.fn().mockResolvedValue([]),
+      });
+      const snap = await new SnapshotSource(410, pub, null).fetch();
+      expect(snap.state).toBeNull();
+    });
   });
 
   it('returns a null state when the event has no sessions', async () => {

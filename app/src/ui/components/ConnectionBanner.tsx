@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSessionStore } from '../../data/sessionStore';
 import { useAppStore } from '../../state/appStore';
+import type { FeedSource } from '../../data/snapshotSource';
 
 const STALE_AFTER_MS = 20_000;
 
@@ -37,6 +38,13 @@ export function ConnectionBanner() {
   return null;
 }
 
+const FEED_LABEL: Record<FeedSource, string> = { token: 'TOKEN', public: 'PUBLIC', 'public-laps': 'PUBLIC LAPS' };
+const FEED_TITLE: Record<FeedSource, string> = {
+  token: 'Authenticated live snapshot via token broker',
+  public: 'Public results feed (no token) — ~5s updates',
+  'public-laps': 'No token: board rebuilt from public lap history — updates every ~20s',
+};
+
 export function ConnectionBadge() {
   const connection = useSessionStore((s) => s.connection);
   const feedSource = useSessionStore((s) => s.feedSource);
@@ -56,16 +64,10 @@ export function ConnectionBadge() {
   return (
     <span
       className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-bold ${s.cls}`}
-      title={
-        feedSource === 'public'
-          ? 'Public results feed (no token) — ~5s updates'
-          : feedSource === 'token'
-            ? 'Authenticated live snapshot via token broker'
-            : undefined
-      }
+      title={feedSource ? FEED_TITLE[feedSource] : undefined}
     >
       {s.label}
-      {showSource ? ` · ${feedSource === 'token' ? 'TOKEN' : 'PUBLIC'}` : ''}
+      {showSource ? ` · ${FEED_LABEL[feedSource]}` : ''}
     </span>
   );
 }
