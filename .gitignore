@@ -6,3 +6,7 @@ dist/
 .env.*
 recordings/
 .DS_Store
+
+# Windows download metadata
+*:Zone.Identifier
+.dev.vars

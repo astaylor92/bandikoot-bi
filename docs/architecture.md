@@ -1,0 +1,54 @@
+# Architecture
+
+Last verified: 2026-09-26
+
+## Data flow
+
+```
+             ┌──────────── live ───────────────────────────────┐
+EventPicker ─┤ connectLive(eventId)  (app/src/data/connect.ts)  │
+             │   SnapshotSource: token snapshot → public results│
+             │   SignalRTransport (needs broker) ─┐             │
+             │   PollingTransport (every 5 s) ────┤ fallback    │
+             │   seedLapsFromRest: LoadSessionLaps│ every 3 min │
+             ├──────────── dry run ────────────────────────────-┤
+             │ connectReplay(fixtureUrl) → ReplayTransport      │
+             └──────────────────────┬───────────────────────────┘
+                                    ▼ TransportHandlers
+                      useSessionStore (data/sessionStore.ts)
+                      session · cars · lapLog · connection · feedSource
+                                    ▼
+             strategy/* pure functions  ←  useAppStore settings
+                                    ▼
+                          ui/screens/*  (view switch in App.tsx)
+```
+
+The three transports (SignalR, polling, replay) all raise the same `TransportHandlers` events (`data/transport.ts`). The rest of the app can't tell a live race from a Dry Run.
+
+## Stores
+
+- **`useSessionStore`** holds the current session.
+  - `cars` holds the latest `CarPosition` for each car number.
+  - `lapLog` holds a `LapRecord[]` for each car. It is appended whenever `lastLapCompleted` goes up, and merged with the `LoadSessionLaps` seed (REST data wins).
+  - `feedSource` records which REST feed produced the last snapshot.
+- **`useAppStore`** holds navigation state and the persisted settings. Settings are saved to localStorage under `pitwall-settings`.
+  - Per-event settings are keyed `${mode}:${eventId}`: pinned car, target position, stint config, rivals, per-car strategy overrides.
+
+## Replay
+
+`replay/replayEngine.ts` rebuilds a full `SessionState` for any race time t from a lap fixture (`replay/fixture.ts`). `ReplayTransport` ticks this at 1 Hz, with play, pause, speed and seek. The fixture format is described in `docs/fixtures.md`.
+
+## Strategy
+
+The pure modules in `app/src/strategy/` are described in `docs/strategy-models.md`. Screens call them inside `useMemo`, keyed on store slices.
+
+## UI
+
+- There is no router. `appStore.view` selects one of Timing, Strategy, Pit Plan, Rival, Settings, or a car detail screen.
+- The pinned car ("my car") and the rivals are stored per event.
+
+## Deployment
+
+- `.github/workflows/deploy-pages.yml` runs on every push to `main`.
+  - It runs typecheck and tests, builds with `BASE_PATH=/<repo>/`, and deploys to GitHub Pages.
+- The worker is deployed by hand with `wrangler deploy` (see `docs/token-broker.md`).

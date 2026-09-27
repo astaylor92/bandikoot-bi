@@ -28,52 +28,16 @@ npm run build              # production build → app/dist
 npm run fixtures           # rebuild the demo fixture from the API
 ```
 
-## How it connects
+## Docs
 
-- **REST (public, no auth):** `https://api.redmist.racing/status/v2/Events/...`
-  — event lists, session snapshots (`GetCurrentSessionStateJson`), lap history,
-  flags. The app fully works in this mode, polling every ~5s.
-- **SignalR (needs a token):** `.../status/event-status` — sub-second patch
-  stream (`SubscribeToEventV2` → `ReceiveSessionPatch`/`ReceiveCarPatches`,
-  nullable-field patch objects). On reconnect or `ReceiveReset` the app
-  re-subscribes and re-fetches the snapshot.
-- Types and JSON decoders under `app/src/api/redmist/` are vendored from the
-  MIT-licensed generated TypeScript in
-  [redmist-timing-common](https://github.com/bgriggs/redmist-timing-common).
+- [CLAUDE.md](CLAUDE.md): contributor standards covering plans, execution and doc freshness
+- [docs/architecture.md](docs/architecture.md): data flow, stores, transports, replay
+- [docs/data-sources.md](docs/data-sources.md): Red Mist endpoints, auth status, field semantics
+- [docs/token-broker.md](docs/token-broker.md): optional worker for the authenticated live feed
+- [docs/strategy-models.md](docs/strategy-models.md): the models behind every prediction
 
-## Token broker (optional, for live SignalR)
-
-The OAuth client secret must not ship in a static site, so `worker/` contains a
-tiny Cloudflare Worker that exchanges your Red Mist relay credentials (org
-settings → **Relay Connection**) for short-lived access tokens:
-
-```bash
-cd worker
-npx wrangler secret put RM_CLIENT_ID
-npx wrangler secret put RM_CLIENT_SECRET
-npx wrangler secret put TEAM_KEY        # optional shared passphrase
-npx wrangler deploy
-```
-
-Then set the broker URL in the app's **Settings** page (defaults to
-`/api/token`, which the dev server proxies to `wrangler dev` on :8787). If the
-broker is missing or unreachable the app silently falls back to REST polling.
-
-## Deploying
-
-- **App:** static output in `app/dist` — Cloudflare Pages, Netlify, GitHub
-  Pages, anything. PWA shell caching included.
-- **Worker:** `wrangler deploy` (free tier is plenty).
-
-## Recording real races
-
-```bash
-node tools/recorder/record.mjs --event 244 --broker https://<worker>/api/token --out recordings/race.jsonl
-```
-
-captures the snapshot + timestamped patch stream from a live event (useful for
-debugging and future replay formats). `tools/fixtures/build-demo.mjs` builds the
-bundled Dry Run fixture from any *completed* event using public endpoints only.
+The app works without credentials. It polls the public results feed, and the
+token broker only upgrades it to the sub-second stream.
 
 ## Layout
 
@@ -86,6 +50,7 @@ app/                  Vite + React + TS SPA
   src/strategy/       pace, projections, target position, stint planner (+tests)
   src/ui/             screens & components
 worker/               Cloudflare Worker token broker
+docs/                 project docs (see above)
 tools/recorder/       live patch-stream recorder
 tools/fixtures/       demo fixture builder
 ```
