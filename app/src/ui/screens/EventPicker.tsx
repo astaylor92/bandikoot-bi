@@ -81,7 +81,7 @@ export function EventPicker() {
         <h1 className="font-display text-4xl font-extrabold uppercase tracking-wide sm:text-5xl">
           Suck it, <span className="text-accent">Randy</span>
         </h1>
-        <p className="text-sm text-pit-dim">Bandicoot Motorwerks #440 · live timing &amp; strategy</p>
+        <p className="text-sm text-pit-dim">Undercoot · Bandicoot Motorwerks #440 · live timing &amp; strategy</p>
       </div>
       <section className="rounded-lg border-2 border-mycar bg-pit-panel p-3">
         <div className="mb-2">

@@ -1,8 +1,8 @@
-# SUCK IT, RANDY — Live Race Timing & Strategy
+# Undercoot — Live Race Timing & Strategy
 
 ![The Bandicoot stomping Randy's car flat](app/public/brand/hero-800.webp)
 
-Bandicoot Motorwerks #440's pit-wall app.
+Bandicoot Motorwerks #440's pit-wall app. Splash-screen motto: **SUCK IT, RANDY.**
 
 A free-to-host web app for endurance racing teams (built around Lucky Dog Racing League),
 powered by the public [Red Mist Timing & Scoring API](https://docs.redmist.racing/).

@@ -1,5 +1,5 @@
 // Minimal app-shell cache: static assets cache-first, API requests untouched.
-const CACHE = 'suckitrandy-shell-v2';
+const CACHE = 'undercoot-shell-v3';
 
 self.addEventListener('install', (event) => {
   // Relative to the SW scope so the app works from a subpath (GitHub Pages).
