@@ -1,4 +1,4 @@
-# Undercoot — project guide for Claude
+# Coot Crew — project guide for Claude
 
 A live race timing and strategy web app for Lucky Dog Racing League endurance teams, built on the Red Mist Timing & Scoring API.
 It is a static React SPA deployed to GitHub Pages, plus an optional Cloudflare Worker token broker.

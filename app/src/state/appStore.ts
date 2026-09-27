@@ -46,6 +46,14 @@ export const DEFAULT_STRATEGY: StrategyDefaults = {
   sparkLaps: 10,
 };
 
+/** Home-screen event list status (not persisted), shown in the header pill. */
+export interface EventsStatus {
+  state: 'loading' | 'ok' | 'error';
+  liveCount: number;
+  /** Wall clock of the last successful refresh. */
+  updatedAt: number | null;
+}
+
 export interface CarOverride {
   tankGal?: number;
   gph?: number;
@@ -65,6 +73,7 @@ interface AppStore {
   eventId: number | null;
   eventLabel: string;
   replay: ReplayProgress | null;
+  eventsStatus: EventsStatus;
 
   // Persisted preferences
   brokerUrl: string;
@@ -83,6 +92,7 @@ interface AppStore {
   navigate(view: View): void;
   setSession(mode: SessionMode, eventId: number | null, label?: string): void;
   setReplayProgress(p: ReplayProgress | null): void;
+  setEventsStatus(s: EventsStatus): void;
   setBroker(url: string, teamKey: string): void;
   setMyCar(car: string): void;
   setTargetClassPos(pos: number): void;
@@ -106,6 +116,7 @@ export const useAppStore = create<AppStore>()(
       eventId: null,
       eventLabel: '',
       replay: null,
+      eventsStatus: { state: 'loading', liveCount: 0, updatedAt: null },
 
       brokerUrl: '/api/token',
       teamKey: '',
@@ -121,6 +132,7 @@ export const useAppStore = create<AppStore>()(
       setSession: (mode, eventId, label = '') =>
         set({ mode, eventId, eventLabel: label, replay: null }),
       setReplayProgress: (p) => set({ replay: p }),
+      setEventsStatus: (eventsStatus) => set({ eventsStatus }),
       setBroker: (brokerUrl, teamKey) => set({ brokerUrl, teamKey }),
       setMyCar: (car) => {
         const { mode, eventId, myCarByEvent } = get();

@@ -6,7 +6,7 @@ The source is `refs/Bandicoot-Racing_Brand-Identity_NT_6.24.24.pdf` (Bandicoot M
 
 ## Name
 
-The app is **Undercoot** (an undercut, the strategy move the Rival tab computes, plus "'koot" for Bandicoot). The header wordmark is "Under**coot**" with "coot" in the accent colour, and the manifest `name`/`short_name` use it too.
+The app is **Coot Crew**: the pit crew of Bandicoot Motorwerks ("'koot"). The header wordmark is "Coot **Crew**" with "Crew" in the accent colour, and the manifest `name`/`short_name` use it too.
 
 **"SUCK IT, RANDY"** stays as the splash-screen headline, under the artwork of #760 getting stomped.
 
