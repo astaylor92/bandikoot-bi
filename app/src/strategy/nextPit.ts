@@ -18,6 +18,12 @@ export interface NextPitInput {
   inPit: boolean;
 }
 
+/** A car that hasn't crossed the line for this long (and isn't in pit lane) is parked/retired. */
+export function isParked(nowMs: number, lastCrossMs: number | null, paceMs: number | null, inPit: boolean): boolean {
+  if (inPit || lastCrossMs === null) return false;
+  return nowMs - lastCrossMs > Math.max(4 * (paceMs ?? 180_000), 10 * 60_000);
+}
+
 export type PitReason = 'driver' | 'fuel';
 
 export interface NextPit {
@@ -29,6 +35,8 @@ export interface NextPit {
   /** Laps until the stop at current pace (null without pace). */
   inLaps: number | null;
   inPit: boolean;
+  /** Not seen for several laps: retired, in the garage, or stopped on track. */
+  parked: boolean;
   /** Past its predicted window and not yet stopped. */
   overdue: boolean;
   finishes: boolean;
@@ -77,7 +85,8 @@ export function predictNextPit(input: NextPitInput): NextPit {
 
   const finishes = raceEndMs !== null && dueMs >= raceEndMs;
   const atMs = finishes ? null : inPit ? nowMs : dueMs;
-  const overdue = !inPit && !finishes && dueMs < nowMs;
+  const parked = isParked(nowMs, lastCrossMs, paceMs, inPit);
+  const overdue = !inPit && !parked && !finishes && dueMs < nowMs;
 
   let inLaps: number | null = null;
   if (atMs !== null && paceMs && paceMs > 0) {
@@ -100,6 +109,7 @@ export function predictNextPit(input: NextPitInput): NextPit {
     fuelOutMs,
     inLaps,
     inPit,
+    parked,
     overdue,
     finishes,
     remainingStops,

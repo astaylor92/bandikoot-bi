@@ -2,6 +2,7 @@ import { useSessionStore } from '../../data/sessionStore';
 import { useAppStore, useCarOverrides } from '../../state/appStore';
 import { NumberField } from '../components/NumberField';
 import { NextPitCell } from '../components/NextPitCell';
+import { Sparkline } from '../components/Sparkline';
 import { raceClock } from '../../strategy/liveInputs';
 import { formatClock, formatLapTime } from '../../data/time';
 import { paceSummary } from '../../strategy/pace';
@@ -66,6 +67,10 @@ export function CarDetail({ car }: { car: string }) {
             }
           />
           <Stat label="Clean laps" value={String(pace.cleanLapCount)} />
+        </div>
+        <div className="mt-3">
+          <div className="text-xs uppercase text-pit-dim">Last {strategy.sparkLaps} laps (higher = faster)</div>
+          <Sparkline laps={laps} count={strategy.sparkLaps} width={320} height={56} showRange />
         </div>
       </div>
 

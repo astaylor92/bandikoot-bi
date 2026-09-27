@@ -7,6 +7,7 @@ import { useFieldIntel } from '../hooks/useFieldIntel';
 import type { CarIntel } from '../../strategy/fieldIntel';
 import { raceClock } from '../../strategy/liveInputs';
 import { NextPitCell } from '../components/NextPitCell';
+import { Sparkline } from '../components/Sparkline';
 
 /** How long a reclass stays highlighted on the board. */
 const RECENT_RECLASS_MS = 10 * 60_000;
@@ -84,6 +85,8 @@ function BoardTable({
 }) {
   const navigate = useAppStore((s) => s.navigate);
   const setMyCar = useAppStore((s) => s.setMyCar);
+  const sparkLaps = useAppStore((s) => s.strategy.sparkLaps);
+  const lapLog = useSessionStore((s) => s.lapLog);
 
   return (
     <div className="overflow-x-auto rounded-lg border border-pit-line">
@@ -98,6 +101,7 @@ function BoardTable({
             <th className="w-14 px-2 py-1.5 text-right">Laps</th>
             <th className="w-20 px-2 py-1.5 text-right">Last</th>
             <th className="w-20 px-2 py-1.5 text-right">Best</th>
+            <th className="hidden w-28 px-2 py-1.5 md:table-cell" title={`Last ${sparkLaps} laps — higher is faster`}>Trend</th>
             <th className="w-20 px-2 py-1.5 text-right">Gap</th>
             <th className="w-20 px-2 py-1.5 text-right">Ldr</th>
             <th className="w-12 px-2 py-1.5 text-right" title="Pit stops (loop-detected + inferred from lap time)">Pits</th>
@@ -154,6 +158,9 @@ function BoardTable({
                 <td className="tnum px-2 py-1.5 text-right">{shortTime(c.lastLapTime)}</td>
                 <td className={`tnum px-2 py-1.5 text-right ${c.isBestTimeClass ? 'text-purple-400' : ''}`}>
                   {shortTime(c.bestTime)}
+                </td>
+                <td className="hidden px-2 py-0.5 md:table-cell">
+                  <Sparkline laps={lapLog[num] ?? []} count={sparkLaps} />
                 </td>
                 <td className="tnum px-2 py-1.5 text-right text-pit-dim">{shortGap(c.overallGap)}</td>
                 <td className="tnum px-2 py-1.5 text-right text-pit-dim">{shortGap(c.overallDifference)}</td>

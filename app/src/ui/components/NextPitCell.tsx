@@ -6,6 +6,7 @@ const SOON_MS = 10 * 60_000;
 export function NextPitCell({ next, nowMs }: { next: NextPit | null; nowMs: number | null }) {
   if (!next) return <span className="text-pit-dim">–</span>;
   if (next.inPit) return <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-black">IN PIT</span>;
+  if (next.parked) return <span className="text-xs text-pit-dim" title="Not seen for several laps">parked</span>;
   if (next.finishes) return <span className="text-xs text-pit-dim" title="Should reach the flag without stopping">to flag</span>;
   if (next.overdue) {
     return (

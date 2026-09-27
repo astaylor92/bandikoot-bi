@@ -66,6 +66,12 @@ describe('predictNextPit', () => {
     expect(overdue.overdue).toBe(true);
   });
 
+  it('a car not seen for ages is parked, not overdue', () => {
+    const p = predictNextPit({ ...base, stints: summary([]), assumptions: A, nowMs: 3 * H, lastCrossMs: 10 * MIN });
+    expect(p.parked).toBe(true);
+    expect(p.overdue).toBe(false);
+  });
+
   it('a car in the pits is pitting now', () => {
     const p = predictNextPit({ ...base, inPit: true, stints: summary([]), assumptions: A, nowMs: H, lastCrossMs: H });
     expect(p.atMs).toBe(H);

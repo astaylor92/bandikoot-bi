@@ -46,6 +46,14 @@ These outputs are planning estimates, not official timing. Every function lives 
 - **Driver stints**: stints are split only at driver changes. The current stint is always open.
 - **Class history**: every lap record carries the car's class at that lap, so a change between laps is a reclass. The board highlights a reclass for 10 min, and Strategy shows a banner when *our* car is reclassed. Class projections and target position always use the current class.
 
+## Lap-time sparklines (`spark.ts`, `ui/components/Sparkline.tsx`)
+
+- Each sparkline shows a car's last X laps. X is set on the Settings page; the default is 10.
+- **Faster laps plot higher.**
+- The y scale uses only clean laps. Pit laps, yellow laps and outliers appear as muted ticks along the bottom.
+- The line is green when the least-squares trend is getting faster by more than 0.15 s/lap, orange when getting slower, and grey otherwise.
+- Clean laps also exclude impossible laps under 0.7 × the median, which are timing glitches.
+
 ## Next pit (`nextPit.ts`)
 
 This runs for every car, live.
@@ -56,6 +64,7 @@ This runs for every car, live.
   - `IN PIT` while the car is in pit lane.
   - `DUE` (red) once the car is past its window.
   - `to flag` when the car should finish without stopping.
+  - `parked` when the car hasn't crossed the line for max(4 laps, 10 min): retired, in the garage or stopped. Parked cars are also left out of finish projections.
 - **Stops to flag**: the next stop plus as many as the remaining time needs, in cycles of min(max stint, fuel window).
 - **Finish projections** subtract each car's remaining stops × its median stop duration (at least the minimum pit time) from its remaining race time.
 - **Calibration**: Car detail shows the *observed fuel stint*, the median track time between refuel stops. Use it to tune a car's tank or burn override.
