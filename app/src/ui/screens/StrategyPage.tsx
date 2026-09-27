@@ -1,27 +1,21 @@
-import { useMemo } from 'react';
 import { useSessionStore } from '../../data/sessionStore';
 import { useAppStore, useMyCar, useTargetClassPos } from '../../state/appStore';
+import { useProjections } from '../hooks/useProjections';
 import { formatClock, formatLapTime } from '../../data/time';
-import { carStrategyData, liveProjections, raceClock } from '../../strategy/liveInputs';
 import { assessTarget } from '../../strategy/targetPosition';
 import { ClassChip } from '../components/ClassChip';
+import { useFieldIntel } from '../hooks/useFieldIntel';
+import { ReclassCard } from '../components/ReclassCard';
 
 export function StrategyPage() {
   const session = useSessionStore((s) => s.session);
-  const cars = useSessionStore((s) => s.cars);
-  const lapLog = useSessionStore((s) => s.lapLog);
   const hasSession = useSessionStore((s) => s.hasSession);
   const myCar = useMyCar();
   const targetPos = useTargetClassPos();
   const setTargetPos = useAppStore((s) => s.setTargetClassPos);
+  const intel = useFieldIntel();
 
-  const clock = raceClock(session);
-
-  const data = useMemo(() => carStrategyData(cars, lapLog), [cars, lapLog]);
-  const projections = useMemo(
-    () => (clock.raceEndMs !== null ? liveProjections(data, clock.raceEndMs, clock.elapsedMs) : []),
-    [data, clock.raceEndMs, clock.elapsedMs],
-  );
+  const { data, projections, clock } = useProjections(intel);
 
   if (!hasSession) {
     return <div className="p-6 text-center text-pit-dim">Waiting for session data…</div>;
@@ -61,8 +55,19 @@ export function StrategyPage() {
     unrealistic: 'bg-flag-red text-white',
   };
 
+  const myChanges = intel[myCar]?.classChanges ?? [];
+  const lastReclass = myChanges[myChanges.length - 1];
+  const reclassedRecently =
+    lastReclass && lastReclass.atMs !== null && clock.elapsedMs !== null && clock.elapsedMs - lastReclass.atMs < 30 * 60_000;
+
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
+      {reclassedRecently && (
+        <div className="rounded-lg bg-miami-light p-3 text-sm font-bold text-black">
+          ↻ We were reclassed {lastReclass.from} → {lastReclass.to} at {formatClock(lastReclass.atMs)}. Class
+          projections and the target below now use {lastReclass.to}.
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card label="Race time" value={formatClock(clock.elapsedMs)} />
         <Card label="Remaining" value={formatClock(clock.remainingMs)} />
@@ -76,6 +81,8 @@ export function StrategyPage() {
           }
         />
       </div>
+
+      <ReclassCard risk={intel[myCar]?.reclass} title="Our reclass risk" />
 
       {assessment && (
         <div className="rounded-lg border border-pit-line bg-pit-panel p-4">

@@ -38,6 +38,7 @@ export function ConnectionBanner() {
 
 export function ConnectionBadge() {
   const connection = useSessionStore((s) => s.connection);
+  const feedSource = useSessionStore((s) => s.feedSource);
   const style: Record<string, { label: string; cls: string }> = {
     idle: { label: 'OFFLINE', cls: 'bg-pit-line text-pit-dim' },
     connecting: { label: 'CONNECTING', cls: 'bg-pit-line text-pit-text' },
@@ -48,5 +49,20 @@ export function ConnectionBadge() {
     error: { label: 'ERROR', cls: 'bg-flag-red text-white' },
   };
   const s = style[connection] ?? style.idle;
-  return <span className={`rounded px-2 py-0.5 text-xs font-bold ${s.cls}`}>{s.label}</span>;
+  const showSource = feedSource && (connection === 'live' || connection === 'polling');
+  return (
+    <span
+      className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-bold ${s.cls}`}
+      title={
+        feedSource === 'public'
+          ? 'Public results feed (no token) — ~5s updates'
+          : feedSource === 'token'
+            ? 'Authenticated live snapshot via token broker'
+            : undefined
+      }
+    >
+      {s.label}
+      {showSource ? ` · ${feedSource === 'token' ? 'TOKEN' : 'PUBLIC'}` : ''}
+    </span>
+  );
 }

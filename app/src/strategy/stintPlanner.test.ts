@@ -37,10 +37,10 @@ describe('buildEvenPlan', () => {
 });
 
 function pitLap(n: number, totalMs: number): LapRecord {
-  return { lap: n, lapMs: 8 * MIN, totalMs, flag: Flags.Green, pit: true, overallPosition: 1, classPosition: 1 };
+  return { lap: n, lapMs: 8 * MIN, totalMs, flag: Flags.Green, pit: true, overallPosition: 1, classPosition: 1, cls: null };
 }
 function greenLap(n: number, totalMs: number): LapRecord {
-  return { lap: n, lapMs: 2.4 * MIN, totalMs, flag: Flags.Green, pit: false, overallPosition: 1, classPosition: 1 };
+  return { lap: n, lapMs: 2.4 * MIN, totalMs, flag: Flags.Green, pit: false, overallPosition: 1, classPosition: 1, cls: null };
 }
 
 describe('actualStints / stintStatus', () => {

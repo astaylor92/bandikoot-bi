@@ -17,13 +17,13 @@ function median(values: number[]): number | null {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-/** Green-flag, non-pit laps with traffic/off-track outliers removed. */
+/** Green-flag, non-pit laps with traffic/off-track outliers (and impossible timing-glitch laps) removed. */
 export function cleanLaps(laps: LapRecord[], opts: PaceOptions = {}): LapRecord[] {
   const { outlierFactor } = { ...DEFAULTS, ...opts };
   const green = laps.filter((l) => l.flag === Flags.Green && !l.pit && l.lapMs > 0);
   const med = median(green.map((l) => l.lapMs));
   if (med === null) return [];
-  return green.filter((l) => l.lapMs <= med * outlierFactor);
+  return green.filter((l) => l.lapMs <= med * outlierFactor && l.lapMs >= med * 0.7);
 }
 
 export interface PaceSummary {

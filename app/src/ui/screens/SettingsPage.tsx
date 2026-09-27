@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { useAppStore } from '../../state/appStore';
+import { DEFAULT_STRATEGY, useAppStore } from '../../state/appStore';
+import { NumberField } from '../components/NumberField';
 import { TokenProvider } from '../../api/tokenProvider';
 
 export function SettingsPage() {
   const brokerUrl = useAppStore((s) => s.brokerUrl);
   const teamKey = useAppStore((s) => s.teamKey);
   const setBroker = useAppStore((s) => s.setBroker);
+  const strategy = useAppStore((s) => s.strategy);
+  const setStrategy = useAppStore((s) => s.setStrategy);
+  const num = (key: keyof typeof strategy) => (v: number | undefined) =>
+    setStrategy({ [key]: v ?? DEFAULT_STRATEGY[key] });
   const [url, setUrl] = useState(brokerUrl);
   const [key, setKey] = useState(teamKey);
   const [testResult, setTestResult] = useState('');
@@ -31,9 +36,9 @@ export function SettingsPage() {
       <div className="rounded-lg border border-pit-line bg-pit-panel p-4">
         <h3 className="mb-2 font-bold">Token broker</h3>
         <p className="mb-3 text-sm text-pit-dim">
-          The broker (a small Cloudflare Worker, see <code>worker/</code>) holds your Red Mist relay
-          credentials and hands the app short-lived tokens for the live SignalR stream. Without it
-          the app still works via public REST polling (~5s updates).
+          The broker (a small Cloudflare Worker, see <code>worker/</code> and docs/token-broker.md) holds your
+          Red Mist API credentials and hands the app short-lived tokens for the live snapshot and SignalR
+          stream. Without it the app still works via the public results feed (~5s updates).
         </p>
         <label className="text-xs uppercase text-pit-dim">Broker URL</label>
         <input
@@ -58,6 +63,22 @@ export function SettingsPage() {
           </button>
         </div>
         {testResult && <p className="mt-2 text-sm">{testResult}</p>}
+      </div>
+
+      <div className="rounded-lg border border-pit-line bg-pit-panel p-4">
+        <h3 className="mb-1 font-bold">Strategy defaults</h3>
+        <p className="mb-3 text-sm text-pit-dim">
+          Applied to every car. Override tank, burn rate or max stint per car in its Car detail page.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <NumberField label="Max driver stint" suffix="min" value={strategy.maxStintMin} onCommit={num('maxStintMin')} min={10} hint="LDRL: 120" />
+          <NumberField label="Fuel reserve" suffix="min" value={strategy.reserveMin} onCommit={num('reserveMin')} />
+          <NumberField label="Tank size" suffix="gal" step={0.5} value={strategy.tankGal} onCommit={num('tankGal')} min={1} />
+          <NumberField label="Burn rate" suffix="gal/h" step={0.1} value={strategy.gph} onCommit={num('gph')} min={0.5} />
+          <NumberField label="Driver change if stop ≥" suffix="min" step={0.5} value={strategy.driverChangeMinStopMin} onCommit={num('driverChangeMinStopMin')} min={1} />
+          <NumberField label="Refuel if stop ≥" suffix="min" step={0.5} value={strategy.refuelMinStopMin} onCommit={num('refuelMinStopMin')} min={1} />
+          <NumberField label="Sparkline laps" suffix="laps" value={strategy.sparkLaps} onCommit={num('sparkLaps')} min={3} max={30} />
+        </div>
       </div>
 
       <div className="rounded-lg border border-pit-line bg-pit-panel p-4 text-sm text-pit-dim">

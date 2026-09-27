@@ -9,6 +9,7 @@
     "build": "npm --prefix app run build",
     "test": "npm --prefix app run test",
     "typecheck": "npm --prefix app run typecheck && npm --prefix worker run typecheck",
-    "fixtures": "node tools/fixtures/build-demo.mjs"
+    "fixtures": "node tools/fixtures/build-demo.mjs",
+    "backtest:reclass": "cd app && npx vite-node ../tools/analysis/reclass-backtest.ts"
   }
 }

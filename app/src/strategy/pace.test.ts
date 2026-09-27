@@ -4,7 +4,7 @@ import type { LapRecord } from '../data/sessionStore';
 import { cleanLaps, paceSummary } from './pace';
 
 function lap(n: number, ms: number, flag = Flags.Green, pit = false): LapRecord {
-  return { lap: n, lapMs: ms, totalMs: n * ms, flag, pit, overallPosition: 1, classPosition: 1 };
+  return { lap: n, lapMs: ms, totalMs: n * ms, flag, pit, overallPosition: 1, classPosition: 1, cls: null };
 }
 
 describe('cleanLaps', () => {

@@ -11,6 +11,8 @@ import { CarDetail } from './ui/screens/CarDetail';
 import { StrategyPage } from './ui/screens/StrategyPage';
 import { PlanPage } from './ui/screens/PlanPage';
 import { SettingsPage } from './ui/screens/SettingsPage';
+import { RivalPage } from './ui/screens/RivalPage';
+import { RivalToast } from './ui/components/RivalToast';
 import { formatClock, parseDurationMs } from './data/time';
 
 export default function App() {
@@ -57,8 +59,11 @@ export default function App() {
       <header className="border-b border-pit-line bg-pit-panel">
         <div className="flex items-center gap-3 px-3 py-2">
           <button className="text-left" onClick={() => (inSession ? navigate({ name: 'board' }) : navigate({ name: 'events' }))}>
-            <span className="text-lg font-black tracking-tight">
-              PIT<span className="text-accent">WALL</span>
+            <span className="flex items-center gap-2">
+              <img src={`${import.meta.env.BASE_URL}brand/bandicoot.png`} alt="" className="h-7 w-auto shrink-0" />
+              <span className="font-display text-lg font-extrabold uppercase tracking-wide whitespace-nowrap sm:text-xl">
+                Suck it, <span className="text-accent">Randy</span>
+              </span>
             </span>
           </button>
           {inSession && hasSession && (
@@ -84,6 +89,7 @@ export default function App() {
             <Tab label="Timing" active={view.name === 'board' || view.name === 'car'} onClick={() => navigate({ name: 'board' })} />
             <Tab label="Strategy" active={view.name === 'strategy'} onClick={() => navigate({ name: 'strategy' })} />
             <Tab label="Pit Plan" active={view.name === 'plan'} onClick={() => navigate({ name: 'plan' })} />
+            <Tab label="Rival" active={view.name === 'rival'} onClick={() => navigate({ name: 'rival' })} />
             <Tab label="Settings" active={view.name === 'settings'} onClick={() => navigate({ name: 'settings' })} />
           </nav>
         )}
@@ -96,6 +102,7 @@ export default function App() {
         {view.name === 'car' && <CarDetail car={view.car} />}
         {view.name === 'strategy' && <StrategyPage />}
         {view.name === 'plan' && <PlanPage />}
+        {view.name === 'rival' && <RivalPage />}
         {view.name === 'settings' && <SettingsPage />}
       </main>
 
@@ -105,6 +112,7 @@ export default function App() {
         </footer>
       )}
 
+      {inSession && <RivalToast />}
       <div className="pb-safe" />
     </div>
   );

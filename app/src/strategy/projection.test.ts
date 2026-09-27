@@ -107,3 +107,22 @@ describe('assessTarget', () => {
     expect(['push', 'stretch', 'unrealistic']).toContain(a.feasibility);
   });
 });
+
+describe('projection from now', () => {
+  it('does not credit a car stopped since its last crossing', () => {
+    const base = { cls: 'B', lapsCompleted: 60, paceMs: 120_000 };
+    const [moving, stopped] = ['moving', 'stopped'];
+    const out = projectStandings(
+      [
+        { ...base, number: moving, lastCrossMs: 7_190_000 },
+        { ...base, number: stopped, lastCrossMs: 6_300_000, inPit: true }, // in the pits for 15 min
+      ],
+      { raceEndMs: 10_800_000, nowMs: 7_200_000 },
+    );
+    const m = out.find((c) => c.number === moving)!;
+    const s = out.find((c) => c.number === stopped)!;
+    // the car in the pits is credited from now, not from its crossing 15 min ago
+    expect(s.projLaps).toBeCloseTo(60 + (10_800_000 - 7_200_000) / 120_000, 5);
+    expect(m.projLaps).toBeGreaterThan(s.projLaps);
+  });
+});

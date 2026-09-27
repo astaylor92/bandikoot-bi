@@ -6,7 +6,7 @@ export function ClassChip({
   classColors: Record<string, string>;
 }) {
   if (!cls) return null;
-  const color = classColors[cls] ?? '#6b7280';
+  const color = classColor(cls, classColors);
   return (
     <span
       className="inline-block rounded px-1.5 py-0.5 text-xs font-bold"
@@ -15,6 +15,17 @@ export function ClassChip({
       {cls.replace(/^LDRL\s*/i, '')}
     </span>
   );
+}
+
+/** Red Mist sends #AARRGGBB (Avalonia); CSS reads 8-digit hex as #RRGGBBAA. */
+export function normalizeArgb(hex: string): string {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{6})$/i.exec(hex.trim());
+  return m ? `#${m[2]}` : hex;
+}
+
+export function classColor(cls: string, classColors: Record<string, string>): string {
+  const raw = classColors[cls];
+  return raw ? normalizeArgb(raw) : '#6b7280';
 }
 
 function pickTextColor(hex: string): string {

@@ -2,6 +2,7 @@ import type { SessionState } from '../api/redmist/session-state';
 import type { SessionStatePatch } from '../api/redmist/session-state-patch';
 import type { CarPositionPatch } from '../api/redmist/car-position-patch';
 import type { ConnectionStatus, LapRecord } from './sessionStore';
+import type { FeedSource } from './snapshotSource';
 
 /**
  * Events a transport raises. Implemented identically by the live SignalR
@@ -15,6 +16,8 @@ export interface TransportHandlers {
   /** Replace the accumulated lap history for a car (seeding / scrubbing). */
   onLapHistory(car: string, laps: LapRecord[]): void;
   onStatus(status: ConnectionStatus, detail?: string): void;
+  /** Which REST feed produced the latest snapshot (live transports only). */
+  onFeedSource?(source: FeedSource): void;
   /** Server-side reset: local state is invalid and a fresh snapshot follows. */
   onReset(): void;
 }

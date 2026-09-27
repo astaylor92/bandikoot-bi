@@ -6,6 +6,7 @@ import type { CarPositionPatch } from '../api/redmist/car-position-patch';
 import { Flags } from '../api/redmist/flags';
 import { mergeSessionPatch, mergeCarPatch, emptyCarPosition, emptySessionState } from './patch';
 import { parseDurationMs } from './time';
+import type { FeedSource } from './snapshotSource';
 
 export type ConnectionStatus =
   | 'idle'
@@ -26,6 +27,8 @@ export interface LapRecord {
   pit: boolean;
   overallPosition: number;
   classPosition: number;
+  /** The car's class when this lap completed (reclasses show up as changes). */
+  cls: string | null;
 }
 
 export function lapRecordFromCarPosition(cp: CarPosition): LapRecord | null {
@@ -39,6 +42,7 @@ export function lapRecordFromCarPosition(cp: CarPosition): LapRecord | null {
     pit: cp.lapIncludedPit,
     overallPosition: cp.overallPosition,
     classPosition: cp.classPosition,
+    cls: cp.class,
   };
 }
 
@@ -49,14 +53,17 @@ interface SessionStore {
   lapLog: Record<string, LapRecord[]>;
   connection: ConnectionStatus;
   connectionDetail: string;
+  feedSource: FeedSource | null;
   lastUpdateAt: number | null;
 
   applyFullState(state: SessionState): void;
   applySessionPatch(patch: SessionStatePatch): void;
   applyCarPatches(patches: CarPositionPatch[]): void;
   seedLapLog(car: string, laps: LapRecord[]): void;
+  replaceLapLog(car: string, laps: LapRecord[]): void;
   resetSession(): void;
   setConnection(status: ConnectionStatus, detail?: string): void;
+  setFeedSource(source: FeedSource | null): void;
 }
 
 function upsertLap(log: LapRecord[] | undefined, rec: LapRecord): LapRecord[] {
@@ -79,16 +86,21 @@ export const useSessionStore = create<SessionStore>((set) => ({
   lapLog: {},
   connection: 'idle',
   connectionDetail: '',
+  feedSource: null,
   lastUpdateAt: null,
 
   applyFullState: (state) =>
     set((prev) => {
       const cars: Record<string, CarPosition> = {};
-      let lapLog = prev.lapLog;
+      // A new session under the same event (e.g. Sat race → Sun race) starts a fresh lap history.
+      const sessionChanged =
+        prev.hasSession && !!prev.session.sessionId && !!state.sessionId && prev.session.sessionId !== state.sessionId;
+      let lapLog = sessionChanged ? {} : prev.lapLog;
+      const prevCars = sessionChanged ? {} : prev.cars;
       for (const cp of state.carPositions) {
         if (!cp.number) continue;
         cars[cp.number] = cp;
-        const prevCar = prev.cars[cp.number];
+        const prevCar = prevCars[cp.number];
         if (cp.lastLapCompleted > (prevCar?.lastLapCompleted ?? 0)) {
           const rec = lapRecordFromCarPosition(cp);
           if (rec) lapLog = { ...lapLog, [cp.number]: upsertLap(lapLog[cp.number], rec) };
@@ -164,16 +176,20 @@ export const useSessionStore = create<SessionStore>((set) => ({
       return { lapLog: { ...prev.lapLog, [car]: merged } };
     }),
 
+  replaceLapLog: (car, laps) => set((prev) => ({ lapLog: { ...prev.lapLog, [car]: laps } })),
+
   resetSession: () =>
     set({
       session: emptySessionState(),
       hasSession: false,
       cars: {},
       lapLog: {},
+      feedSource: null,
       lastUpdateAt: null,
     }),
 
   setConnection: (status, detail = '') => set({ connection: status, connectionDetail: detail }),
+  setFeedSource: (source) => set((prev) => (prev.feedSource === source ? prev : { feedSource: source })),
 }));
 
 // ---- Selectors -------------------------------------------------------------

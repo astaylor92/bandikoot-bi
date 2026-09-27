@@ -3,11 +3,30 @@ import type { EventListSummary } from '../../api/redmist/event-list-summary';
 import { connectLive, connectReplay, restClient } from '../../data/connect';
 import { useAppStore } from '../../state/appStore';
 
+interface FixtureMeta {
+  id: string;
+  file: string;
+  eventName: string;
+  sessionName: string;
+  trackName: string;
+  date: string;
+  hours: number;
+  cars: number;
+}
+
 export function EventPicker() {
   const navigate = useAppStore((s) => s.navigate);
   const [events, setEvents] = useState<EventListSummary[] | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
+  const [fixtures, setFixtures] = useState<FixtureMeta[]>([]);
+
+  useEffect(() => {
+    fetch(`${import.meta.env.BASE_URL}fixtures/index.json`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: FixtureMeta[]) => setFixtures(list))
+      .catch(() => setFixtures([]));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,10 +51,13 @@ export function EventPicker() {
     }
   };
 
-  const openDryRun = async () => {
-    setBusy('dryrun');
+  const openDryRun = async (f: FixtureMeta) => {
+    setBusy(`dry-${f.id}`);
     try {
-      await connectReplay(`${import.meta.env.BASE_URL}fixtures/demo-race.json`, 'Dry Run — LDRL VIR 8 Hr');
+      await connectReplay(
+        `${import.meta.env.BASE_URL}fixtures/${f.file}`,
+        `Dry Run — ${f.eventName.replace(/^LDRL - /, '')} ${f.sessionName}`,
+      );
       navigate({ name: 'board' });
     } catch (err) {
       setError(String(err));
@@ -46,24 +68,48 @@ export function EventPicker() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
-      <button
-        onClick={openDryRun}
-        disabled={busy !== ''}
-        className="block w-full rounded-lg border-2 border-mycar bg-pit-panel p-4 text-left hover:bg-pit-line disabled:opacity-50"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-lg font-bold">
-              Dry Run <span className="text-mycar">(demo race)</span>
-            </div>
-            <div className="text-sm text-pit-dim">
-              Replay of LDRL — Virginia is for Dawg Lovers 2026, Sat 8 Hr. Practice with the tool:
-              play, scrub and fast-forward a real race. No connection or race needed.
-            </div>
+      <div className="text-center">
+        <img
+          src={`${import.meta.env.BASE_URL}brand/hero.svg`}
+          alt="The Bandicoot flattening Randy's car"
+          className="mx-auto w-full max-w-md"
+        />
+        <h1 className="font-display text-4xl font-extrabold uppercase tracking-wide sm:text-5xl">
+          Suck it, <span className="text-accent">Randy</span>
+        </h1>
+        <p className="text-sm text-pit-dim">Bandicoot Motorwerks #440 · live timing &amp; strategy</p>
+      </div>
+      <section className="rounded-lg border-2 border-mycar bg-pit-panel p-3">
+        <div className="mb-2">
+          <div className="text-lg font-bold">
+            Dry Run <span className="text-mycar">(replay a real race)</span>
           </div>
-          <div className="text-2xl">{busy === 'dryrun' ? '…' : '▶'}</div>
+          <div className="text-sm text-pit-dim">
+            Practice with every feature: play, scrub and fast-forward past Lucky Dog races. No connection needed.
+          </div>
         </div>
-      </button>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {fixtures.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => void openDryRun(f)}
+              disabled={busy !== ''}
+              className="flex items-center justify-between gap-2 rounded border border-pit-line bg-pit-bg p-2 text-left hover:bg-pit-line disabled:opacity-50"
+            >
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold">
+                  {f.eventName.replace(/^LDRL - /, '')} · {f.sessionName}
+                </div>
+                <div className="truncate text-xs text-pit-dim">
+                  {f.trackName} · {f.date} · {f.cars} cars
+                </div>
+              </div>
+              <span className="text-xl">{busy === `dry-${f.id}` ? '…' : '▶'}</span>
+            </button>
+          ))}
+          {fixtures.length === 0 && <div className="text-sm text-pit-dim">No dry-run races bundled.</div>}
+        </div>
+      </section>
 
       <h2 className="pt-2 text-sm font-bold uppercase tracking-wide text-pit-dim">
         Live &amp; recent events

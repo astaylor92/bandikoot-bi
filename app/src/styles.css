@@ -1,18 +1,23 @@
 @import 'tailwindcss';
 
+/* Bandicoot Motorwerks palette — see docs/brand.md. Flag colours stay semantic. */
 @theme {
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --color-pit-bg: #0a0a0f;
-  --color-pit-panel: #14141c;
-  --color-pit-line: #262633;
-  --color-pit-text: #f2f2f7;
-  --color-pit-dim: #9a9aad;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --color-pit-bg: #121619;
+  --color-pit-panel: #21272a;
+  --color-pit-line: #343a3f;
+  --color-pit-text: #f4f4f4;
+  --color-pit-dim: #a2a9b0;
   --color-flag-green: #16a34a;
   --color-flag-yellow: #facc15;
   --color-flag-red: #dc2626;
   --color-flag-white: #f8fafc;
-  --color-accent: #38bdf8;
-  --color-mycar: #f59e0b;
+  --color-accent: #ff884d;
+  --color-mycar: #1dbee8;
+  --color-rust: #d46e3b;
+  --color-miami-light: #61d7f6;
 }
 
 html,

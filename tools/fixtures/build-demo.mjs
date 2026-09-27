@@ -1,9 +1,14 @@
 #!/usr/bin/env node
-// Builds a Dry Run replay fixture (redmist-replay/laps@1) from a completed
+// Builds a Dry Run replay fixture (redmist-replay/laps@2) from a completed
 // Red Mist event using only public REST endpoints:
 //   LoadSessions, LoadSessionLaps, LoadFlags, LoadSessionResults
 //
-// Usage: node tools/fixtures/build-demo.mjs [--event 244] [--session 7] [--out app/public/fixtures/demo-race.json]
+// Usage:
+//   node tools/fixtures/build-demo.mjs --event 244 --session 7 [--out app/public/fixtures/244-7.json]
+//   node tools/fixtures/build-demo.mjs --all-ldrl   # every LDRL race session that still has laps,
+//                                                   # plus app/public/fixtures/index.json
+//
+// Archived events keep results but drop lap data, so capture fixtures soon after each race.
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -15,9 +20,8 @@ function arg(name, fallback) {
   return i >= 0 ? process.argv[i + 1] : fallback;
 }
 
-const eventId = Number(arg('event', '244'));
-const sessionId = Number(arg('session', '7'));
-const outPath = arg('out', 'app/public/fixtures/demo-race.json');
+const FIXTURE_DIR = 'app/public/fixtures';
+const KNOWN_LDRL_EVENTS = [244];
 
 async function get(path) {
   const url = `${API}/v2/Events/${path}`;
@@ -47,86 +51,160 @@ function naiveMs(s) {
   return Date.parse(s.replace(/(\.\d{3})\d+$/, '$1') + 'Z');
 }
 
-console.log(`Building fixture for event ${eventId}, session ${sessionId}…`);
+async function buildFixture(eventId, sessionId, outPath) {
+  console.log(`Building fixture for event ${eventId}, session ${sessionId}…`);
 
-const [sessions, lapsRaw, flagsRaw, results, event] = await Promise.all([
-  get(`LoadSessions?eventId=${eventId}`),
-  get(`LoadSessionLaps?eventId=${eventId}&sessionId=${sessionId}`),
-  get(`LoadFlags?eventId=${eventId}&sessionId=${sessionId}`),
-  get(`LoadSessionResults?eventId=${eventId}&sessionId=${sessionId}`),
-  get(`LoadEvent?eventId=${eventId}`),
-]);
+  const [sessions, lapsRaw, flagsRaw, results, event] = await Promise.all([
+    get(`LoadSessions?eventId=${eventId}`),
+    get(`LoadSessionLaps?eventId=${eventId}&sessionId=${sessionId}`),
+    get(`LoadFlags?eventId=${eventId}&sessionId=${sessionId}`),
+    get(`LoadSessionResults?eventId=${eventId}&sessionId=${sessionId}`),
+    get(`LoadEvent?eventId=${eventId}`),
+  ]);
 
-const session = sessions.find((s) => s.sid === sessionId);
-if (!session) throw new Error(`Session ${sessionId} not found`);
-if (!session.et) throw new Error('Session has no end time (still running?)');
+  const session = sessions.find((s) => s.sid === sessionId);
+  if (!session) throw new Error(`Session ${sessionId} not found`);
+  if (!session.et) throw new Error('Session has no end time (still running?)');
 
-// Session start/end come back in UTC; flag timestamps in track-local time.
-const tzMs = (session.tz ?? 0) * 3_600_000;
-const startUtcMs = naiveMs(session.st);
-const durationMs = naiveMs(session.et) - startUtcMs;
-const startLocalMs = startUtcMs + tzMs;
-const localStartMs = startLocalMs % 86_400_000;
+  // Session start/end come back in UTC; flag timestamps in track-local time.
+  const tzMs = (session.tz ?? 0) * 3_600_000;
+  const startUtcMs = naiveMs(session.st);
+  const durationMs = naiveMs(session.et) - startUtcMs;
+  const startLocalMs = startUtcMs + tzMs;
+  const localStartMs = startLocalMs % 86_400_000;
 
-// Flags: f=0 (Unknown) entries mark data gaps; keep real flag states only.
-const flags = (flagsRaw ?? [])
-  .filter((f) => f.f > 0)
-  .map((f) => ({
-    f: f.f,
-    startMs: Math.max(0, naiveMs(f.s) - startLocalMs),
-    endMs: f.e ? Math.max(0, naiveMs(f.e) - startLocalMs) : null,
-  }))
-  .filter((f) => f.endMs === null || f.endMs > 0)
-  .sort((a, b) => a.startMs - b.startMs);
+  // Flags: f=0 (Unknown) entries mark data gaps; keep real flag states only.
+  const flags = (flagsRaw ?? [])
+    .filter((f) => f.f > 0)
+    .map((f) => ({
+      f: f.f,
+      startMs: Math.max(0, naiveMs(f.s) - startLocalMs),
+      endMs: f.e ? Math.max(0, naiveMs(f.e) - startLocalMs) : null,
+    }))
+    .filter((f) => f.endMs === null || f.endMs > 0)
+    .sort((a, b) => a.startMs - b.startMs);
 
-// Group per-lap CarPosition records by car.
-const byCar = new Map();
-for (const lap of lapsRaw ?? []) {
-  const ltm = durMs(lap.ltm);
-  const ttm = durMs(lap.ttm);
-  if (!lap.n || !lap.llp || ltm === null || ttm === null || ttm <= 0) continue;
-  if (!byCar.has(lap.n)) byCar.set(lap.n, { cls: lap.class ?? '', laps: [] });
-  byCar.get(lap.n).laps.push([lap.llp, ltm, ttm, lap.flg ?? 0, lap.lip ? 1 : 0]);
+  // Group per-lap CarPosition records by car.
+  const byCar = new Map();
+  for (const lap of lapsRaw ?? []) {
+    const ltm = durMs(lap.ltm);
+    const ttm = durMs(lap.ttm);
+    if (!lap.n || !lap.llp || ltm === null || ttm === null || ttm <= 0) continue;
+    if (!byCar.has(lap.n)) byCar.set(lap.n, { cls: '', laps: [], clsByLap: new Map(), cc: [] });
+    const car = byCar.get(lap.n);
+    car.laps.push([lap.llp, ltm, ttm, lap.flg ?? 0, lap.lip ? 1 : 0]);
+    car.clsByLap.set(lap.llp, lap.class ?? '');
+  }
+  for (const car of byCar.values()) {
+    car.laps.sort((a, b) => a[0] - b[0]);
+    // Drop duplicate lap numbers (data hiccups), keep the last occurrence.
+    car.laps = car.laps.filter((l, i, arr) => i === arr.length - 1 || l[0] !== arr[i + 1][0]);
+    // Each lap record carries the class at that time, so reclasses are recoverable.
+    let prev = null;
+    for (const [lapNo] of car.laps) {
+      const cls = car.clsByLap.get(lapNo) || prev || '';
+      if (prev === null) car.cls = cls;
+      else if (cls !== prev) car.cc.push([lapNo, cls]);
+      prev = cls;
+    }
+  }
+
+  const entries = (results?.eventEntries ?? [])
+    .filter((e) => byCar.has(e.no))
+    .map((e) => ({ no: e.no, nm: e.nm, t: e.t, c: e.c }));
+  // Cars that raced but aren't in the entry list still need a row.
+  for (const [no, car] of byCar) {
+    if (!entries.some((e) => e.no === no)) entries.push({ no, nm: `Car ${no}`, t: '', c: car.cls });
+  }
+
+  const classes = [...new Set([...byCar.values()].map((c) => c.cls).filter(Boolean))].sort();
+  const palette = ['#e11d48', '#2563eb', '#16a34a', '#f59e0b', '#9333ea', '#0891b2'];
+  const classColors = results?.classColors ?? Object.fromEntries(classes.map((c, i) => [c, palette[i % palette.length]]));
+  const classOrder = results?.classOrder ?? Object.fromEntries(classes.map((c, i) => [c, String(i + 1)]));
+
+  const fixture = {
+    format: 'redmist-replay/laps@2',
+    eventId,
+    eventName: results?.eventName ?? event?.n ?? `Event ${eventId}`,
+    sessionId,
+    sessionName: results?.sessionName ?? session.n,
+    trackName: event?.t ?? '',
+    organizationName: event?.on ?? '',
+    durationMs,
+    localStartMs,
+    classColors,
+    classOrder,
+    entries,
+    flags,
+    cars: [...byCar.entries()].map(([n, c]) => ({ n, c: c.cls, laps: c.laps, ...(c.cc.length ? { cc: c.cc } : {}) })),
+  };
+
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(fixture));
+
+  const totalLaps = [...byCar.values()].reduce((s, c) => s + c.laps.length, 0);
+  const reclasses = [...byCar.values()].reduce((s, c) => s + c.cc.length, 0);
+  console.log(
+    `Wrote ${outPath}: ${byCar.size} cars, ${totalLaps} laps, ${reclasses} reclasses, ${(durationMs / 3_600_000).toFixed(2)}h, ${flags.length} flag periods`,
+  );
+  return {
+    id: `${eventId}-${sessionId}`,
+    file: outPath.split('/').pop(),
+    eventName: fixture.eventName,
+    sessionName: fixture.sessionName,
+    trackName: fixture.trackName,
+    date: session.st.slice(0, 10),
+    hours: Math.round((durationMs / 3_600_000) * 10) / 10,
+    cars: byCar.size,
+  };
 }
-for (const car of byCar.values()) {
-  car.laps.sort((a, b) => a[0] - b[0]);
-  // Drop duplicate lap numbers (data hiccups), keep the last occurrence.
-  car.laps = car.laps.filter((l, i, arr) => i === arr.length - 1 || l[0] !== arr[i + 1][0]);
+
+async function allLdrl() {
+  const recent = (await get('LoadLiveAndRecentEvents')) ?? [];
+  const archived = [];
+  for (let offset = 0; ; offset += 100) {
+    const page = (await get(`LoadArchivedEvents?offset=${offset}&take=100`)) ?? [];
+    archived.push(...page);
+    if (page.length < 100) break;
+  }
+  const byId = new Map([...archived, ...recent].map((e) => [e.eid, e]));
+  // Older non-archived events can drop out of both listings (e.g. 244, VIR 2026).
+  for (const eid of KNOWN_LDRL_EVENTS) {
+    if (byId.has(eid)) continue;
+    const ev = await get(`LoadEvent?eventId=${eid}`);
+    if (ev) byId.set(eid, { eid, en: ev.n, on: 'Lucky Dog', ed: String(ev.d ?? ''), arch: false });
+  }
+  const ldrl = [...byId.values()].filter((e) => /lucky dog/i.test(e.on) || /^LDRL/.test(e.en));
+  const index = [];
+  for (const ev of ldrl.sort((a, b) => a.eid - b.eid)) {
+    if (ev.arch) {
+      console.log(`skip ${ev.eid} ${ev.en}: archived (no lap data)`);
+      continue;
+    }
+    const sessions = (await get(`LoadSessions?eventId=${ev.eid}`)) ?? [];
+    // Session 95 is a long-lived shadow session; qualifying isn't a race.
+    for (const s of sessions.filter((x) => !x.pq && x.sid !== 95)) {
+      if (!s.et) {
+        console.log(`skip ${ev.eid}/${s.sid} ${s.n}: still running`);
+        continue;
+      }
+      const laps = await get(`LoadSessionLaps?eventId=${ev.eid}&sessionId=${s.sid}`);
+      if (!laps?.length) {
+        console.log(`skip ${ev.eid}/${s.sid} ${s.n}: no laps`);
+        continue;
+      }
+      index.push(await buildFixture(ev.eid, s.sid, `${FIXTURE_DIR}/${ev.eid}-${s.sid}.json`));
+    }
+  }
+  index.sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  writeFileSync(`${FIXTURE_DIR}/index.json`, JSON.stringify(index, null, 2) + '\n');
+  console.log(`Wrote ${FIXTURE_DIR}/index.json (${index.length} fixtures)`);
 }
 
-const entries = (results?.eventEntries ?? [])
-  .filter((e) => byCar.has(e.no))
-  .map((e) => ({ no: e.no, nm: e.nm, t: e.t, c: e.c }));
-// Cars that raced but aren't in the entry list still need a row.
-for (const [no, car] of byCar) {
-  if (!entries.some((e) => e.no === no)) entries.push({ no, nm: `Car ${no}`, t: '', c: car.cls });
+if (process.argv.includes('--all-ldrl')) {
+  await allLdrl();
+} else {
+  const eventId = Number(arg('event', '244'));
+  const sessionId = Number(arg('session', '7'));
+  await buildFixture(eventId, sessionId, arg('out', `${FIXTURE_DIR}/${eventId}-${sessionId}.json`));
 }
-
-const classes = [...new Set([...byCar.values()].map((c) => c.cls).filter(Boolean))].sort();
-const palette = ['#e11d48', '#2563eb', '#16a34a', '#f59e0b', '#9333ea', '#0891b2'];
-const classColors = results?.classColors ?? Object.fromEntries(classes.map((c, i) => [c, palette[i % palette.length]]));
-const classOrder = results?.classOrder ?? Object.fromEntries(classes.map((c, i) => [c, String(i + 1)]));
-
-const fixture = {
-  format: 'redmist-replay/laps@1',
-  eventId,
-  eventName: results?.eventName ?? event?.n ?? `Event ${eventId}`,
-  sessionId,
-  sessionName: results?.sessionName ?? session.n,
-  trackName: event?.t ?? '',
-  organizationName: event?.on ?? '',
-  durationMs,
-  localStartMs,
-  classColors,
-  classOrder,
-  entries,
-  flags,
-  cars: [...byCar.entries()].map(([n, c]) => ({ n, c: c.cls, laps: c.laps })),
-};
-
-mkdirSync(dirname(outPath), { recursive: true });
-writeFileSync(outPath, JSON.stringify(fixture));
-const totalLaps = [...byCar.values()].reduce((s, c) => s + c.laps.length, 0);
-console.log(
-  `Wrote ${outPath}: ${byCar.size} cars, ${totalLaps} laps, ${(durationMs / 3_600_000).toFixed(2)}h, ${flags.length} flag periods`,
-);

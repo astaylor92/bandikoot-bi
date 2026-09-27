@@ -1,4 +1,5 @@
 import type { LapRecord } from '../data/sessionStore';
+import { findStops } from './stints';
 
 export interface StintConfig {
   raceLengthMs: number;
@@ -63,8 +64,12 @@ export interface ActualStint {
   lapCount: number;
 }
 
-/** Derive actual stints from the lap log: each pit-flagged lap closes a stint. */
+/**
+ * Derive actual stints from the lap log: every stop closes a stint, including
+ * stops inferred from lap time when the pit loop missed them (see stints.ts).
+ */
 export function actualStints(laps: LapRecord[]): ActualStint[] {
+  const stopLaps = new Set(findStops(laps).stops.map((s) => s.lap));
   const out: ActualStint[] = [];
   let current: ActualStint | null = null;
   for (const lap of laps) {
@@ -78,7 +83,7 @@ export function actualStints(laps: LapRecord[]): ActualStint[] {
       };
     }
     current.lapCount++;
-    if (lap.pit) {
+    if (stopLaps.has(lap.lap)) {
       current.endLap = lap.lap;
       current.endMs = lap.totalMs;
       out.push(current);

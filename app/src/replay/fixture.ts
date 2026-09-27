@@ -7,16 +7,23 @@
  *
  * Each lap tuple is [lapNumber, lapTimeMs, crossingTimeMs, flag, pitFlag]
  * where crossingTimeMs is elapsed race time when the car completed the lap.
+ *
+ * `laps@2` adds per-car class changes (`cc`) so reclasses replay; `laps@1`
+ * fixtures still load (class stays fixed).
  */
+
+export const SUPPORTED_FIXTURE_FORMATS = ['redmist-replay/laps@1', 'redmist-replay/laps@2'] as const;
 
 export type LapTuple = [number, number, number, number, number];
 
 export interface FixtureCar {
   /** Car number */
   n: string;
-  /** Class */
+  /** Class at the car's first lap */
   c: string;
   laps: LapTuple[];
+  /** laps@2: reclasses as [lapNumber, newClass] — the class shown from that lap's completion on. */
+  cc?: [number, string][];
 }
 
 export interface FixtureFlagPeriod {
@@ -26,7 +33,7 @@ export interface FixtureFlagPeriod {
 }
 
 export interface LapReplayFixture {
-  format: 'redmist-replay/laps@1';
+  format: 'redmist-replay/laps@1' | 'redmist-replay/laps@2';
   eventId: number;
   eventName: string;
   sessionId: number;

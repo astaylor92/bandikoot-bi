@@ -28,6 +28,12 @@ export interface ProjectionOptions {
    * keyed by car number; applied by shrinking that car's remaining time.
    */
   extraLossMsByCar?: Record<string, number>;
+  /**
+   * Current race time. When given, remaining time counts from now, crediting
+   * at most one lap in progress (none while in the pits) — a car sitting in
+   * pit lane isn't credited with driving since its last crossing.
+   */
+  nowMs?: number | null;
 }
 
 /**
@@ -44,7 +50,13 @@ export function projectStandings(
     let projLaps = car.lapsCompleted;
     if (car.paceMs && car.paceMs > 0 && car.lastCrossMs !== null) {
       const extra = opts.extraLossMsByCar?.[car.number] ?? 0;
-      const remaining = Math.max(0, opts.raceEndMs - car.lastCrossMs - extra);
+      const from =
+        opts.nowMs == null
+          ? car.lastCrossMs
+          : car.inPit
+            ? Math.max(car.lastCrossMs, opts.nowMs)
+            : Math.max(car.lastCrossMs, opts.nowMs - car.paceMs);
+      const remaining = Math.max(0, opts.raceEndMs - from - extra);
       projLaps = car.lapsCompleted + remaining / car.paceMs;
     }
     return {
