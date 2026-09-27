@@ -52,6 +52,10 @@ The pure modules in `app/src/strategy/` are described in `docs/strategy-models.m
 
 - There is no router. `appStore.view` selects one of Timing, Strategy, Pit Plan, Rival, Settings, or a car detail screen.
 - Settings can also be reached from the home screen header, so the broker can be set up before opening a race.
+- **Browser history** (`state/navHistory.ts`): each screen change adds a hash URL (`#/board`, `#/car/440`, `#/rival`, …) so Back, Forward and swipe-back work.
+  - GitHub Pages can't rewrite real paths, hence the hash.
+  - **In a race, Back never leaves to the event list**; use Exit, so a stray swipe mid-race can't disconnect you.
+  - Reloading a race-screen URL lands on the event list, because a race can't be restored from a link. `#/settings` survives a reload.
 - The pinned car ("my car") and the rivals are stored per event.
 
 ## Deployment
