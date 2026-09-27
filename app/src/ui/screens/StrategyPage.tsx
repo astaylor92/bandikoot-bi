@@ -1,9 +1,7 @@
-import { useMemo } from 'react';
 import { useSessionStore } from '../../data/sessionStore';
-import { useAppStore, useMyCar, useStintConfig, useTargetClassPos } from '../../state/appStore';
-import { remainingPitLossMs } from '../../strategy/nextPit';
+import { useAppStore, useMyCar, useTargetClassPos } from '../../state/appStore';
+import { useProjections } from '../hooks/useProjections';
 import { formatClock, formatLapTime } from '../../data/time';
-import { carStrategyData, liveProjections, raceClock } from '../../strategy/liveInputs';
 import { assessTarget } from '../../strategy/targetPosition';
 import { ClassChip } from '../components/ClassChip';
 import { useFieldIntel } from '../hooks/useFieldIntel';
@@ -11,30 +9,13 @@ import { ReclassCard } from '../components/ReclassCard';
 
 export function StrategyPage() {
   const session = useSessionStore((s) => s.session);
-  const cars = useSessionStore((s) => s.cars);
-  const lapLog = useSessionStore((s) => s.lapLog);
   const hasSession = useSessionStore((s) => s.hasSession);
   const myCar = useMyCar();
   const targetPos = useTargetClassPos();
   const setTargetPos = useAppStore((s) => s.setTargetClassPos);
   const intel = useFieldIntel();
-  const minPitMs = useStintConfig().minPitMin * 60_000;
 
-  const clock = raceClock(session);
-
-  const data = useMemo(() => carStrategyData(cars, lapLog), [cars, lapLog]);
-  // Cars still owing stops lose that time before the flag.
-  const pitLoss = useMemo(() => {
-    const out: Record<string, number> = {};
-    for (const [car, ci] of Object.entries(intel)) {
-      if (ci.next) out[car] = remainingPitLossMs(ci.next, ci.stints, minPitMs);
-    }
-    return out;
-  }, [intel, minPitMs]);
-  const projections = useMemo(
-    () => (clock.raceEndMs !== null ? liveProjections(data, clock.raceEndMs, clock.elapsedMs, pitLoss) : []),
-    [data, clock.raceEndMs, clock.elapsedMs, pitLoss],
-  );
+  const { data, projections, clock } = useProjections(intel);
 
   if (!hasSession) {
     return <div className="p-6 text-center text-pit-dim">Waiting for session data…</div>;

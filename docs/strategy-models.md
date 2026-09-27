@@ -101,6 +101,18 @@ Bands: **high** ≥ 3, **med** ≥ 2, otherwise **low**. Each band shows the his
 - Car detail and Strategy (for our car) show both directions with the reasons.
 - Rerun the backtest and update `CALIBRATION` whenever new fixtures are added.
 
+## Rival Pits (`rivalCall.ts`, `ui/screens/RivalPage.tsx`)
+
+- **Rivals:** up to 3 per event, toggled with ⚔ on the board or picked on the Rival tab. The first rival is compared in detail.
+- **Gap series:** the difference between the two cars' crossing times at each shared lap number, with positive meaning we're ahead. Comparing equal lap numbers makes it work when one car is lapped. When the cars are within a lap on the road, the gap is shown in time, even if one of them has crossed the line once more.
+- **Projected gap at the flag:** the difference in projected laps × the trailing car's pace. Projections are net of remaining stops.
+- **Undercut/overcut call:** fires when the rival is in the pits.
+  - Cycled gap ≈ gap now + their typical stop − our typical stop + laps until our window × (their pace − our pace).
+  - The typical stop is the car's median stop, with the minimum pit time as a floor.
+  - Separately, a "rival window" warning fires when their predicted pit is within 10 min, and notes whether it overlaps with ours.
+- **Toast:** a tappable toast appears on any other tab when a rival enters the pits.
+- **Comparison table:** class position, sparklines, rolling and best pace, trend, consistency (σ), stops and driver changes, current stint age, next pit, fuel out, reclass risk.
+
 ## Lucky Dog rules the models rely on
 
 | Rule | Source |

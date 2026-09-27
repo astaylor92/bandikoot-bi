@@ -11,6 +11,8 @@ import { CarDetail } from './ui/screens/CarDetail';
 import { StrategyPage } from './ui/screens/StrategyPage';
 import { PlanPage } from './ui/screens/PlanPage';
 import { SettingsPage } from './ui/screens/SettingsPage';
+import { RivalPage } from './ui/screens/RivalPage';
+import { RivalToast } from './ui/components/RivalToast';
 import { formatClock, parseDurationMs } from './data/time';
 
 export default function App() {
@@ -87,6 +89,7 @@ export default function App() {
             <Tab label="Timing" active={view.name === 'board' || view.name === 'car'} onClick={() => navigate({ name: 'board' })} />
             <Tab label="Strategy" active={view.name === 'strategy'} onClick={() => navigate({ name: 'strategy' })} />
             <Tab label="Pit Plan" active={view.name === 'plan'} onClick={() => navigate({ name: 'plan' })} />
+            <Tab label="Rival" active={view.name === 'rival'} onClick={() => navigate({ name: 'rival' })} />
             <Tab label="Settings" active={view.name === 'settings'} onClick={() => navigate({ name: 'settings' })} />
           </nav>
         )}
@@ -99,6 +102,7 @@ export default function App() {
         {view.name === 'car' && <CarDetail car={view.car} />}
         {view.name === 'strategy' && <StrategyPage />}
         {view.name === 'plan' && <PlanPage />}
+        {view.name === 'rival' && <RivalPage />}
         {view.name === 'settings' && <SettingsPage />}
       </main>
 
@@ -108,6 +112,7 @@ export default function App() {
         </footer>
       )}
 
+      {inSession && <RivalToast />}
       <div className="pb-safe" />
     </div>
   );

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { CarPosition } from '../../api/redmist/car-position';
 import { selectClassGroups, selectOverallOrder, useSessionStore } from '../../data/sessionStore';
-import { useAppStore, useMyCar } from '../../state/appStore';
+import { useAppStore, useMyCar, useRivals } from '../../state/appStore';
 import { ClassChip } from '../components/ClassChip';
 import { useFieldIntel } from '../hooks/useFieldIntel';
 import type { CarIntel } from '../../strategy/fieldIntel';
@@ -87,6 +87,8 @@ function BoardTable({
   const navigate = useAppStore((s) => s.navigate);
   const setMyCar = useAppStore((s) => s.setMyCar);
   const sparkLaps = useAppStore((s) => s.strategy.sparkLaps);
+  const rivals = useRivals();
+  const toggleRival = useAppStore((s) => s.toggleRival);
   const lapLog = useSessionStore((s) => s.lapLog);
 
   return (
@@ -95,6 +97,7 @@ function BoardTable({
         <thead>
           <tr className="bg-pit-panel text-left text-xs uppercase text-pit-dim">
             <th className="w-8 px-2 py-1.5"></th>
+            <th className="w-8 px-1 py-1.5" title="Mark as rival"></th>
             <th className="w-10 px-2 py-1.5">P</th>
             <th className="w-14 px-2 py-1.5">#</th>
             {showClass && <th className="w-16 px-2 py-1.5">Cls</th>}
@@ -125,7 +128,7 @@ function BoardTable({
                 key={num}
                 onClick={() => navigate({ name: 'car', car: num })}
                 className={`cursor-pointer border-t border-pit-line hover:bg-pit-line/50 ${
-                  mine ? 'bg-mycar/15' : c.isInPit ? 'bg-accent/10' : ''
+                  mine ? 'bg-mycar/15' : rivals.includes(num) ? 'bg-accent/10' : c.isInPit ? 'bg-pit-line/40' : ''
                 } ${c.isStale ? 'opacity-50' : ''}`}
               >
                 <td
@@ -136,6 +139,16 @@ function BoardTable({
                   }}
                 >
                   {mine ? '★' : '☆'}
+                </td>
+                <td
+                  className={`px-1 py-1.5 text-center ${rivals.includes(num) ? 'text-accent' : 'text-pit-line'}`}
+                  title={rivals.includes(num) ? 'Remove rival' : 'Mark as rival'}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!mine) toggleRival(num);
+                  }}
+                >
+                  {mine ? '' : '⚔'}
                 </td>
                 <td className="tnum px-2 py-1.5 font-bold">{posOf(c) > 0 ? posOf(c) : '–'}</td>
                 <td className="tnum px-2 py-1.5 font-bold">{num}</td>
