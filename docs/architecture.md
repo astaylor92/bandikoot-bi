@@ -56,6 +56,7 @@ The pure modules in `app/src/strategy/` are described in `docs/strategy-models.m
   - GitHub Pages can't rewrite real paths, hence the hash.
   - **In a race, Back never leaves to the event list**; use Exit, so a stray swipe mid-race can't disconnect you.
   - Reloading a race-screen URL lands on the event list, because a race can't be restored from a link. `#/settings` survives a reload.
+  - In-app "← Back" links call `goBack(fallback)`. That is browser Back when an app screen is behind the current one (each history entry carries its `idx`), otherwise the fallback screen.
 - The pinned car ("my car") and the rivals are stored per event.
 
 ## Deployment

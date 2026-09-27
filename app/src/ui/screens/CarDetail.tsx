@@ -1,5 +1,6 @@
 import { useSessionStore } from '../../data/sessionStore';
 import { useAppStore, useCarOverrides } from '../../state/appStore';
+import { goBack } from '../../state/navHistory';
 import { NumberField } from '../components/NumberField';
 import { NextPitCell } from '../components/NextPitCell';
 import { Sparkline } from '../components/Sparkline';
@@ -15,7 +16,6 @@ export function CarDetail({ car }: { car: string }) {
   const cp = useSessionStore((s) => s.cars[car]);
   const laps = useSessionStore((s) => s.lapLog[car] ?? []);
   const session = useSessionStore((s) => s.session);
-  const navigate = useAppStore((s) => s.navigate);
   const setDriverChange = useAppStore((s) => s.setDriverChangeOverride);
   const intel = useFieldIntel()[car];
   const strategy = useAppStore((s) => s.strategy);
@@ -34,8 +34,8 @@ export function CarDetail({ car }: { car: string }) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4">
-      <button className="text-sm text-accent" onClick={() => navigate({ name: 'board' })}>
-        ← Back to board
+      <button className="text-sm text-accent" onClick={() => goBack({ name: 'board' })}>
+        ← Back
       </button>
 
       <div className="rounded-lg border border-pit-line bg-pit-panel p-4">
