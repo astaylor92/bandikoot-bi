@@ -6,7 +6,9 @@ The source is `refs/Bandicoot-Racing_Brand-Identity_NT_6.24.24.pdf` (Bandicoot M
 
 ## Name
 
-The name is **SUCK IT, RANDY**: the manifest `short_name` is `SUCK IT RANDY`, and the header shows "Suck it, Randy" set in uppercase display type.
+The app is **Undercoot** (an undercut, the strategy move the Rival tab computes, plus "'koot" for Bandicoot). The header wordmark is "Under**coot**" with "coot" in the accent colour, and the manifest `name`/`short_name` use it too.
+
+**"SUCK IT, RANDY"** stays as the splash-screen headline, under the artwork of #760 getting stomped.
 
 ## Palette
 

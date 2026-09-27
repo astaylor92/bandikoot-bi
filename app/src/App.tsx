@@ -63,7 +63,7 @@ export default function App() {
             <span className="flex items-center gap-2">
               <img src={`${import.meta.env.BASE_URL}brand/bandicoot.png`} alt="" className="h-7 w-auto shrink-0" />
               <span className="font-display text-lg font-extrabold uppercase tracking-wide whitespace-nowrap sm:text-xl">
-                Suck it, <span className="text-accent">Randy</span>
+                Under<span className="text-accent">coot</span>
               </span>
             </span>
           </button>
