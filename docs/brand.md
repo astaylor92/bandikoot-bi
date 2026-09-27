@@ -42,7 +42,7 @@ The PDF exports its text as unnamed Type3 glyphs, so the font names can't be ext
 | File | What it is | How it was made |
 |---|---|---|
 | `bandicoot.png` | The logo head on a transparent background, 512 px wide | PDF page 6 rendered at 2×, grey panel flood-filled to transparent |
-| `hero.svg` | Splash art: the bandicoot stomping a traced, stylised #760 red Volvo 760 (Randy's car) flat | Hand-drawn SVG car with the logo embedded as base64. The source photo `refs/randys_car.jpg` is not shipped. |
+| `hero-800.webp`, `hero-1376.webp` | Splash art: the bandicoot, in a Miami Blue suit, stomping #760 (Randy's red Volvo 760) flat | Generated with Gemini from the logo + `refs/randys_car.jpg` as references. The source is `refs/suckitrandy.jpg` (1376×768). The splash feathers its edges with a CSS mask (`.hero-fade`) because its background (≈`#161b1e`) is a shade lighter than `pit-bg`. |
 | `icon-192.png`, `icon-512.png` | PWA icons | Logo on a `#121619` rounded square |
 | `../icon.svg` | Favicon | Same as the PWA icons, as SVG |
 

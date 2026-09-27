@@ -32,3 +32,8 @@ body {
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono);
 }
+
+/* The hero art's background is a shade off pit-bg; feather its edges into the page. */
+.hero-fade {
+  mask-image: radial-gradient(ellipse 72% 68% at 50% 50%, #000 70%, transparent 100%);
+}

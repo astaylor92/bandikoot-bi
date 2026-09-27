@@ -1,6 +1,6 @@
 # SUCK IT, RANDY — Live Race Timing & Strategy
 
-![The Bandicoot flattening Randy's car](app/public/brand/hero.svg)
+![The Bandicoot stomping Randy's car flat](app/public/brand/hero-800.webp)
 
 Bandicoot Motorwerks #440's pit-wall app.
 
