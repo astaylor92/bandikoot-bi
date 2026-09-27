@@ -1,4 +1,4 @@
-# Undercoot — Live Race Timing & Strategy
+# Coot Crew — Live Race Timing & Strategy
 
 ![The Bandicoot stomping Randy's car flat](app/public/brand/hero-800.webp)
 
