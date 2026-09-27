@@ -157,7 +157,12 @@ export const useAppStore = create<AppStore>()(
         const { mode, eventId, rivalsByEvent } = get();
         const key = eventKey(mode, eventId);
         const cur = rivalsByEvent[key] ?? [];
-        const next = cur.includes(car) ? cur.filter((c) => c !== car) : [...cur, car].slice(-3);
+        // At capacity, drop the oldest secondary rival — never the primary.
+        const next = cur.includes(car)
+          ? cur.filter((c) => c !== car)
+          : cur.length < 3
+            ? [...cur, car]
+            : [cur[0], ...cur.slice(2), car];
         set({ rivalsByEvent: { ...rivalsByEvent, [key]: next } });
       },
       setPrimaryRival: (car) => {

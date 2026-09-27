@@ -17,7 +17,9 @@ export const DEFAULT_STINT_RULES: StintRules = {
 const MIN_STOP_MS = 90_000;
 
 export interface Stop {
-  /** Lap whose time contains the stop. */
+  /** First lap of the stop — the stable key for manual corrections (merging moves `lap`). */
+  firstLap: number;
+  /** Last lap whose time contains the stop. */
   lap: number;
   /** Race time the car completed that lap (≈ when it rejoined). */
   endMs: number;
@@ -25,6 +27,8 @@ export interface Stop {
   durationMs: number;
   /** True when timing loops didn't flag it and we inferred it from lap time alone. */
   inferred: boolean;
+  /** Pit lap(s) under a red flag: a hold, so no assumed driver change/refuel unless corrected. */
+  underRed: boolean;
   driverChange: boolean;
   refuel: boolean;
 }
@@ -88,12 +92,15 @@ export function findStops(
         last.endMs = l.totalMs ?? last.endMs;
         last.durationMs += Math.max(0, extra);
         last.inferred = last.inferred && inferred;
+        last.underRed = last.underRed || l.flag === Flags.Red;
       } else {
         stops.push({
+          firstLap: l.lap,
           lap: l.lap,
           endMs: l.totalMs ?? 0,
           durationMs: Math.max(0, extra),
           inferred,
+          underRed: l.flag === Flags.Red,
           driverChange: false,
           refuel: false,
         });
@@ -103,8 +110,8 @@ export function findStops(
   }
 
   for (const s of stops) {
-    s.driverChange = overrides[s.lap] ?? s.durationMs >= rules.driverChangeMinStopMs;
-    s.refuel = s.durationMs >= rules.refuelMinStopMs;
+    s.driverChange = overrides[s.firstLap] ?? (!s.underRed && s.durationMs >= rules.driverChangeMinStopMs);
+    s.refuel = !s.underRed && s.durationMs >= rules.refuelMinStopMs;
   }
   return { stops, refPaceMs };
 }

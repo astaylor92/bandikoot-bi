@@ -16,6 +16,15 @@ let activeReplay: ReplayTransport | null = null;
 let seededSessionId: number | null = null;
 let seededAt = 0;
 let seeding = false;
+/** Bumped on every connect/disconnect so in-flight lap downloads from an old connection are discarded. */
+let generation = 0;
+
+function resetSeeding(): void {
+  generation++;
+  seededSessionId = null;
+  seededAt = 0;
+  seeding = false;
+}
 
 // Full lap history is ~5 MB for an endurance race, so it's refreshed slowly;
 // per-poll diffs fill the gaps in between.
@@ -48,11 +57,14 @@ function storeHandlers(): TransportHandlers {
 async function seedLapsFromRest(eventId: number, sessionId: number): Promise<void> {
   if (seeding) return;
   if (seededSessionId === sessionId && Date.now() - seededAt < RESEED_MS) return;
+  const gen = generation;
   seeding = true;
   seededSessionId = sessionId;
   seededAt = Date.now();
   try {
     const laps = await rest.loadSessionLaps(eventId, sessionId);
+    // The crew may have switched event/session while ~5 MB downloaded.
+    if (gen !== generation || useSessionStore.getState().session.sessionId !== sessionId) return;
     const byCar = new Map<string, LapRecord[]>();
     for (const cp of laps) {
       if (!cp.number) continue;
@@ -65,9 +77,9 @@ async function seedLapsFromRest(eventId: number, sessionId: number): Promise<voi
     const store = useSessionStore.getState();
     for (const [car, recs] of byCar) store.seedLapLog(car, recs);
   } catch {
-    seededSessionId = null; // retry on next snapshot
+    if (gen === generation) seededSessionId = null; // retry on next snapshot
   } finally {
-    seeding = false;
+    if (gen === generation) seeding = false;
   }
 }
 
@@ -75,7 +87,7 @@ export async function connectLive(eventId: number, label: string): Promise<void>
   await disconnect();
   useSessionStore.getState().resetSession();
   useAppStore.getState().setSession('live', eventId, label);
-  seededSessionId = null;
+  resetSeeding();
 
   const base = storeHandlers();
   const handlers: TransportHandlers = {
@@ -130,6 +142,7 @@ export function getActiveReplay(): ReplayTransport | null {
 }
 
 export async function disconnect(): Promise<void> {
+  resetSeeding();
   const t = active;
   active = null;
   activeReplay = null;

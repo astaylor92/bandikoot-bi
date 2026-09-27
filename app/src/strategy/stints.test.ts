@@ -61,6 +61,25 @@ describe('findStops', () => {
     expect(stop.refuel).toBe(false);
   });
 
+  it('a correction on a two-lap stop survives the second lap merging in', () => {
+    const inLap = log([0, { extra: 3 * MIN, pit: true }]);
+    const before = findStops(inLap, undefined, { 2: true }).stops[0];
+    expect(before.driverChange).toBe(true);
+    const both = log([0, { extra: 3 * MIN, pit: true }, { extra: 2 * MIN, pit: true }, 0]);
+    const after = findStops(both, undefined, { 2: false }).stops[0];
+    expect([after.firstLap, after.lap]).toEqual([2, 3]);
+    expect(after.driverChange).toBe(false); // correction keyed by first lap still applies
+  });
+
+  it('pit laps under red are holds: no assumed driver change or refuel', () => {
+    const laps = log([0, { extra: 25 * MIN, pit: true, flag: Flags.Red }, 0]);
+    const [stop] = findStops(laps).stops;
+    expect(stop.underRed).toBe(true);
+    expect([stop.driverChange, stop.refuel]).toEqual([false, false]);
+    expect(summarizeStints(laps).driverStartMs).toBe(0);
+    expect(findStops(laps, undefined, { 2: true }).stops[0].driverChange).toBe(true);
+  });
+
   it('manual overrides win', () => {
     const laps = log([0, { extra: 2.5 * MIN, pit: true }, 0, { extra: 6 * MIN, pit: true }, 0]);
     const { stops } = findStops(laps, undefined, { 2: true, 4: false });

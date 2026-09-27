@@ -92,11 +92,15 @@ export const useSessionStore = create<SessionStore>((set) => ({
   applyFullState: (state) =>
     set((prev) => {
       const cars: Record<string, CarPosition> = {};
-      let lapLog = prev.lapLog;
+      // A new session under the same event (e.g. Sat race → Sun race) starts a fresh lap history.
+      const sessionChanged =
+        prev.hasSession && !!prev.session.sessionId && !!state.sessionId && prev.session.sessionId !== state.sessionId;
+      let lapLog = sessionChanged ? {} : prev.lapLog;
+      const prevCars = sessionChanged ? {} : prev.cars;
       for (const cp of state.carPositions) {
         if (!cp.number) continue;
         cars[cp.number] = cp;
-        const prevCar = prev.cars[cp.number];
+        const prevCar = prevCars[cp.number];
         if (cp.lastLapCompleted > (prevCar?.lastLapCompleted ?? 0)) {
           const rec = lapRecordFromCarPosition(cp);
           if (rec) lapLog = { ...lapLog, [cp.number]: upsertLap(lapLog[cp.number], rec) };

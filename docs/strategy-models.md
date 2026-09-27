@@ -20,6 +20,7 @@ These outputs are planning estimates, not official timing. Every function lives 
 - **Laps at the flag** = laps completed + (remaining race time − remaining pit time) ÷ rolling pace.
   - Remaining race time counts from **now**. A car on track is credited at most the lap it's on; a car in the pits gets no credit.
   - Earlier versions counted from the last crossing, so a car sitting in the pits was credited with the whole stop as driving. At VIR that turned a projected 1-lap loss into a 13-min win.
+- **A stop in progress** costs only what's left of it: the typical stop minus its time so far. The time so far is measured from the last crossing, minus half a lap of driving to pit lane.
 - **Typical stop** is the median of a car's stops up to 15 min. Longer stops are red-flag holds or garage visits.
 - **Under a red flag** no car counts as parked, since nobody is crossing the line.
 - **Ranking**: cars are ranked by projected laps overall and within their **current** class.
@@ -46,6 +47,8 @@ These outputs are planning estimates, not official timing. Every function lives 
   - Red-flag laps never count as stops.
   - A stop that spans consecutive laps is merged into one.
 - **Driver change**: a stop of at least `driverChangeMinStopMin`, default 4 min. The team can correct any stop in Car detail; corrections persist per event.
+  - Corrections are keyed by the stop's **first** lap, so they survive a second slow lap merging into the stop.
+- **Red-flag holds**: pit-flagged laps under a red flag still count as stops. They are marked `red flag` and are never assumed to be a driver change or refuel unless corrected.
 - **Refuel**: a stop of at least `refuelMinStopMin`, default 4 min.
 - **Driver stints**: stints are split only at driver changes. The current stint is always open.
 - **Class history**: every lap record carries the car's class at that lap, so a change between laps is a reclass. The board highlights a reclass for 10 min, and Strategy shows a banner when *our* car is reclassed. Class projections and target position always use the current class.

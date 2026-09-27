@@ -31,6 +31,8 @@ The three transports (SignalR, polling, replay) all raise the same `TransportHan
   - `cars` holds the latest `CarPosition` for each car number.
   - `lapLog` holds a `LapRecord[]` for each car. It is appended whenever `lastLapCompleted` goes up, and merged with the `LoadSessionLaps` seed (REST data wins).
   - `feedSource` records which REST feed produced the last snapshot.
+  - A new `sessionId` under the same event, such as Saturday's race moving to Sunday's, starts a fresh lap log.
+  - `connect.ts` versions each connection. A lap-history download still in flight from an earlier event or session is discarded when it lands.
   - Replay scrubbing *replaces* a car's lap log (`onLapHistory`), so seeking backwards removes laps from the future. The live REST seed *merges* instead.
 - **`useProjections(intel)`** returns finish projections net of each car's remaining pit time. The Strategy and Rival screens share it.
 - **`useFieldIntel()`** (`ui/hooks/useFieldIntel.ts`) runs `strategy/fieldIntel.ts` once per render cycle to build each car's stops, stints, reclasses, pace and next pit.

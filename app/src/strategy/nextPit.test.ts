@@ -8,7 +8,8 @@ const H = 60 * MIN;
 const A: PitAssumptions = { maxStintMs: 2 * H, tankGal: 14, gph: 5, reserveMs: 5 * MIN };
 
 function stop(endMs: number, durationMs = 5 * MIN, driverChange = true, refuel = true): Stop {
-  return { lap: Math.round(endMs / (2 * MIN)), endMs, durationMs, inferred: false, driverChange, refuel };
+  const lap = Math.round(endMs / (2 * MIN));
+  return { firstLap: lap, lap, endMs, durationMs, inferred: false, underRed: false, driverChange, refuel };
 }
 
 function summary(stops: Stop[]): StintSummary {
@@ -84,6 +85,14 @@ describe('calibration + projection loss', () => {
     const s = summary([stop(105 * MIN), stop(215 * MIN), stop(330 * MIN)]);
     // on-track: 100, 105, 110 min
     expect(observedFuelStintMs(s)).toBe(105 * MIN);
+  });
+
+  it('a stop in progress costs only its remainder', () => {
+    const s = summary([stop(2 * H, 6 * MIN)]);
+    // in-lap started 5 min ago at a 2-min pace: ~4 min of the stop already done
+    const p = predictNextPit({ ...base, inPit: true, stints: s, assumptions: A, nowMs: 3 * H, lastCrossMs: 3 * H - 5 * MIN });
+    expect(p.currentStopElapsedMs).toBe(4 * MIN);
+    expect(remainingPitLossMs(p, s, 5 * MIN)).toBe((p.remainingStops - 1) * 6 * MIN + 2 * MIN);
   });
 
   it('typical stop ignores red-flag/garage stops', () => {

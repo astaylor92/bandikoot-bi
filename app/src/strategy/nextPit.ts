@@ -44,6 +44,8 @@ export interface NextPit {
   remainingStops: number;
   /** Median on-track time between refuels this race, for calibrating tank/gph. */
   observedFuelStintMs: number | null;
+  /** While in the pits: roughly how long the current stop has lasted so far. */
+  currentStopElapsedMs: number;
 }
 
 /** Usable time on a full tank: tank ÷ burn rate, minus a safety reserve. */
@@ -83,7 +85,8 @@ export function predictNextPit(input: NextPitInput): NextPit {
   const reason: PitReason = fuelOutMs < driverOutMs ? 'fuel' : 'driver';
   const dueMs = Math.min(driverOutMs, fuelOutMs);
 
-  const finishes = raceEndMs !== null && dueMs >= raceEndMs;
+  // A car already in the pits is making a stop regardless of its windows.
+  const finishes = !inPit && raceEndMs !== null && dueMs >= raceEndMs;
   const atMs = finishes ? null : inPit ? nowMs : dueMs;
   const parked = isParked(nowMs, lastCrossMs, paceMs, inPit);
   const overdue = !inPit && !parked && !finishes && dueMs < nowMs;
@@ -114,10 +117,21 @@ export function predictNextPit(input: NextPitInput): NextPit {
     finishes,
     remainingStops,
     observedFuelStintMs: observedFuelStintMs(stints),
+    // The in-lap starts at the last crossing; about half a lap is driving to pit lane.
+    currentStopElapsedMs:
+      inPit && lastCrossMs !== null ? Math.max(0, nowMs - lastCrossMs - (paceMs ?? 0) / 2) : 0,
   };
 }
 
-/** Time a car will still lose in the pits before the flag, for finish projections. */
+/**
+ * Time a car will still lose in the pits before the flag, for finish
+ * projections. A stop in progress only costs what's left of it — projections
+ * already count from now, so the time spent so far is lost once, not twice.
+ */
 export function remainingPitLossMs(next: NextPit, stints: StintSummary, minPitMs: number): number {
-  return next.remainingStops * typicalStopMs(stints.stops, minPitMs);
+  const typical = typicalStopMs(stints.stops, minPitMs);
+  if (next.inPit && next.remainingStops > 0) {
+    return (next.remainingStops - 1) * typical + Math.max(0, typical - next.currentStopElapsedMs);
+  }
+  return next.remainingStops * typical;
 }

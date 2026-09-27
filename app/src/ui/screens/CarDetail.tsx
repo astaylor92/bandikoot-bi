@@ -109,14 +109,15 @@ export function CarDetail({ car }: { car: string }) {
         <div className="space-y-1">
           {stops.map((st) => (
             <button
-              key={st.lap}
+              key={st.firstLap}
               className="tnum flex w-full items-center justify-between gap-2 rounded px-2 py-1 text-left text-sm hover:bg-pit-line"
-              onClick={() => setDriverChange(car, st.lap, !st.driverChange)}
+              onClick={() => setDriverChange(car, st.firstLap, !st.driverChange)}
               title="Toggle driver change"
             >
               <span>
-                Lap {st.lap} · {formatClock(st.endMs)} · +{formatClock(st.durationMs)}
+                Lap {st.firstLap === st.lap ? st.lap : `${st.firstLap}–${st.lap}`} · {formatClock(st.endMs)} · +{formatClock(st.durationMs)}
                 {st.inferred && <span className="ml-1 text-xs text-pit-dim">inferred</span>}
+                {st.underRed && <span className="ml-1 text-xs text-flag-red">red flag</span>}
               </span>
               <span
                 className={`rounded px-1.5 py-0.5 text-xs font-bold ${

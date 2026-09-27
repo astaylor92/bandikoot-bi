@@ -22,7 +22,7 @@ function laps(paceMs: number, n: number, startMs = 0): LapRecord[] {
 function next(p: Partial<NextPit>): NextPit {
   return {
     atMs: null, reason: 'driver', driverOutMs: 0, fuelOutMs: 0, inLaps: null, inPit: false,
-    parked: false, overdue: false, finishes: false, remainingStops: 1, observedFuelStintMs: null, ...p,
+    parked: false, overdue: false, finishes: false, remainingStops: 1, observedFuelStintMs: null, currentStopElapsedMs: 0, ...p,
   };
 }
 
