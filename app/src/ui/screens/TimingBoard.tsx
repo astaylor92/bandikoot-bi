@@ -156,7 +156,7 @@ function BoardTable({
                 </td>
                 <td className="tnum px-2 py-1.5 text-right text-pit-dim">{shortGap(c.overallGap)}</td>
                 <td className="tnum px-2 py-1.5 text-right text-pit-dim">{shortGap(c.overallDifference)}</td>
-                <td className="tnum px-2 py-1.5 text-right">{c.pitStopCount ?? ci?.stints.stops.length ?? '–'}</td>
+                <td className="tnum px-2 py-1.5 text-right">{ci?.stints.stops.length ?? c.pitStopCount ?? '–'}</td>
                 <td className="tnum px-2 py-1.5 text-right">{ci ? ci.stints.driverChanges : '–'}</td>
                 <td className="px-2 py-1.5 text-right">
                   {c.isInPit && (

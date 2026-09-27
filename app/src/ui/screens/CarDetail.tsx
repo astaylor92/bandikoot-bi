@@ -46,7 +46,7 @@ export function CarDetail({ car }: { car: string }) {
           <Stat label="Overall" value={cp.overallPosition > 0 ? `P${cp.overallPosition}` : '–'} />
           <Stat label="In class" value={cp.classPosition > 0 ? `P${cp.classPosition}` : '–'} />
           <Stat label="Laps" value={String(cp.lastLapCompleted || 0)} />
-          <Stat label="Pit stops" value={String(cp.pitStopCount ?? stops.length)} />
+          <Stat label="Pit stops" value={String(stops.length)} />
           <Stat label="Driver changes" value={String(intel?.stints.driverChanges ?? 0)} />
           <Stat label="Reclasses" value={String(classChanges.length)} />
           <Stat label="Rolling pace" value={formatLapTime(pace.rollingMs)} />

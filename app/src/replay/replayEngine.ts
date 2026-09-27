@@ -64,8 +64,11 @@ export class ReplayEngine {
       let best = Number.MAX_SAFE_INTEGER;
       let bestLap = 0;
       let pits = 0;
+      // Timing glitches produce impossible "laps" (e.g. 0:18 at a 1:50 track); keep them out of best laps.
+      const sorted = [...sim.lapMs].sort((a, b) => a - b);
+      const minPlausible = (sorted[sorted.length >> 1] ?? 0) * 0.7;
       for (let i = 0; i < sim.lapMs.length; i++) {
-        if (sim.lapMs[i] < best) {
+        if (sim.lapMs[i] < best && sim.lapMs[i] >= minPlausible) {
           best = sim.lapMs[i];
           bestLap = car.laps[i][0];
         }

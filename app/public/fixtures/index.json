@@ -1,0 +1,52 @@
+[
+  {
+    "id": "410-15",
+    "file": "410-15.json",
+    "eventName": "LDRL - Southern Dawg Delight 2026",
+    "sessionName": "Sat 7 Hr",
+    "trackName": "Carolina Motorsports Park",
+    "date": "2026-09-26",
+    "hours": 7,
+    "cars": 42
+  },
+  {
+    "id": "390-13",
+    "file": "390-13.json",
+    "eventName": "LDRL - DawgFest 2026",
+    "sessionName": "Sun 8hr",
+    "trackName": "The Ridge Motorsports Park",
+    "date": "2026-09-13",
+    "hours": 8,
+    "cars": 52
+  },
+  {
+    "id": "390-12",
+    "file": "390-12.json",
+    "eventName": "LDRL - DawgFest 2026",
+    "sessionName": "Sat 7hr",
+    "trackName": "The Ridge Motorsports Park",
+    "date": "2026-09-12",
+    "hours": 7,
+    "cars": 63
+  },
+  {
+    "id": "244-7",
+    "file": "244-7.json",
+    "eventName": "LDRL - Virginia is for Dawg Lovers 2026",
+    "sessionName": "Sat 8Hr",
+    "trackName": "Virginia International Raceway",
+    "date": "2026-06-27",
+    "hours": 8.1,
+    "cars": 38
+  },
+  {
+    "id": "244-6",
+    "file": "244-6.json",
+    "eventName": "LDRL - Virginia is for Dawg Lovers 2026",
+    "sessionName": "Fri 7Hr",
+    "trackName": "Virginia International Raceway",
+    "date": "2026-06-26",
+    "hours": 7.1,
+    "cars": 43
+  }
+]
