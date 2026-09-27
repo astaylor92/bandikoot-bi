@@ -28,7 +28,7 @@ The swagger file doesn't list per-endpoint auth, so auth status below was checke
 1. If a broker URL is configured, try `GetCurrentSessionStateJson` with the broker's token.
 2. If there is no token or anything fails, use the public `LoadSessionResults` for the **newest-started session that has cars**.
    - Retry the token path every 5 minutes.
-   - Re-resolve the session every 60 seconds.
+   - Re-resolve the session every 60 seconds. Searching costs one request per session, so it never runs more often than that, even when the last search found nothing (e.g. race morning before any session has cars). Between searches each poll is a single `LoadSessionResults`.
 3. The header badge shows which feed is active (`· TOKEN` or `· PUBLIC`).
 4. **Freshness:** in live mode the header shows *last crossing Ns ago*, the wall-clock time since any car was seen completing a lap. A cached feed still "succeeds" on every poll, so this is the real staleness test.
    - Under green it turns yellow at 30 s and red at 90 s. Under yellow the limits are 60 s and 180 s.

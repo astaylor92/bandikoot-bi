@@ -38,7 +38,7 @@ const hasCars = (s: SessionState | null): s is SessionState => !!s && s.carPosit
  */
 export class SnapshotSource {
   private sessionId: number | null = null;
-  private sessionResolvedAt = 0;
+  private sessionResolvedAt: number | null = null;
   private tokenFailedAt: number | null = null;
 
   constructor(
@@ -67,10 +67,13 @@ export class SnapshotSource {
   }
 
   private async fetchPublic(): Promise<SessionState | null> {
-    const due = this.sessionId === null || this.now() - this.sessionResolvedAt > SESSION_RESOLVE_MS;
-    if (!due && this.sessionId !== null) {
+    // Searching costs a request per session, so do it at most once a minute —
+    // even when the last search found nothing (e.g. race morning, pre-qualifying).
+    const due = this.sessionResolvedAt === null || this.now() - this.sessionResolvedAt > SESSION_RESOLVE_MS;
+    if (!due) {
+      if (this.sessionId === null) return null;
       const state = await this.publicRest.loadSessionResults(this.eventId, this.sessionId);
-      if (hasCars(state)) return state;
+      return hasCars(state) ? state : null;
     }
     // Resolve: newest session with cars wins; remember it until the next resolve.
     this.sessionResolvedAt = this.now();

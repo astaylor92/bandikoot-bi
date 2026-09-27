@@ -102,6 +102,27 @@ describe('SnapshotSource', () => {
     expect(results.mock.calls.map((c) => c[1])).toEqual([95, 31, 31]);
   });
 
+  it('when no session has cars, searches again only after a minute', async () => {
+    let now = 0;
+    const results = vi.fn().mockResolvedValue(EMPTY);
+    const pub = fakeRest({
+      loadSessions: vi.fn().mockResolvedValue([session(11, '2026-09-27T08:00:00'), session(95, '2026-09-27T07:00:00')]),
+      loadSessionResults: results,
+    });
+    const src = new SnapshotSource(410, pub, null, () => now);
+    expect((await src.fetch()).state).toBeNull();
+    expect(results).toHaveBeenCalledTimes(2);
+    for (let i = 0; i < 10; i++) {
+      now += 5_000;
+      await src.fetch();
+    }
+    expect(pub.loadSessions).toHaveBeenCalledTimes(1);
+    expect(results).toHaveBeenCalledTimes(2);
+    now += 15_000;
+    await src.fetch();
+    expect(pub.loadSessions).toHaveBeenCalledTimes(2);
+  });
+
   it('returns a null state when the event has no sessions', async () => {
     const pub = fakeRest({ loadSessions: vi.fn().mockResolvedValue([]), loadSessionResults: vi.fn() });
     const src = new SnapshotSource(410, pub, null);
