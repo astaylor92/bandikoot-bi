@@ -31,6 +31,7 @@ refs/                 brand source material (not shipped)
 - `npm run build`: production build into `app/dist`.
 - `npm run fixtures -- --event <id> --session <id>`: build a single Dry Run fixture.
 - `npm run fixtures -- --all-ldrl`: build every Lucky Dog session that still has lap data.
+- `npm run backtest:reclass`: recalibrate the reclass-risk model on the bundled fixtures.
 
 ## Conventions
 

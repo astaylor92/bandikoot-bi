@@ -72,6 +72,35 @@ This runs for every car, live.
 
 Validation on 410 Sat: at 1:40, #440 was predicted to stop at 2:00 on its driver limit. It actually pitted between about 1:57 and 2:02.
 
+## Reclass risk (`reclass.ts`)
+
+LDRL officials reclass at their discretion. Across the five bundled races there were about 110 reclasses. Most came in the first hour, as the field was re-sorted after qualifying; the rest came in batches during the race.
+
+The model scores every car with at least 5 clean laps against the **current** median pace of each class. Parked cars are left out.
+
+| Direction | Points |
+|---|---|
+| **Up** | +2 if within 1% of the faster class's median, or faster than it (+1 if within 2%) · +1 if in the top 10% of its own class · +0.5 if very consistent (σ < 1.5 s) · +0.5 if getting faster by more than 0.1 s/lap |
+| **Down** | +2 if at or slower than the slower class's median (+1.5 if within 2%) · +1 if in the bottom 10% of its class (+0.5 if in the bottom quarter) |
+
+Bands: **high** ≥ 3, **med** ≥ 2, otherwise **low**. Each band shows the historical per-hour rate from `npm run backtest:reclass` (2026-09-26, ~9.5k car-samples, 10-min checkpoints):
+
+| | low | med | high |
+|---|---|---|---|
+| Up, after the first hour | 0.8%/h | 2.6%/h | **14%/h** |
+| Down, after the first hour | 2.7%/h | 9.3%/h | **11%/h** |
+| Up / down, first hour | 4% / 18% | 29% / 81% | 30% / 84% |
+
+- **Recall after the first hour:** 14 of 24 up-reclasses were flagged high beforehand, and 14 of 31 down-reclasses were flagged med or higher.
+- Down-moves are harder to see coming. Consistency and trend added little signal, which matches the "fast *and consistent*" folklore only weakly.
+- Example: at 2:30 of the 410 Sat race, the model flagged #440, #590 and #355 as high up-risk. All three were moved B→A at about 2:33.
+
+**In the UI:**
+
+- The board shows a badge (▲/▼ %/h) only for high risk.
+- Car detail and Strategy (for our car) show both directions with the reasons.
+- Rerun the backtest and update `CALIBRATION` whenever new fixtures are added.
+
 ## Lucky Dog rules the models rely on
 
 | Rule | Source |

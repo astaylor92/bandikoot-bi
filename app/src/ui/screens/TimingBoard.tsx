@@ -8,6 +8,7 @@ import type { CarIntel } from '../../strategy/fieldIntel';
 import { raceClock } from '../../strategy/liveInputs';
 import { NextPitCell } from '../components/NextPitCell';
 import { Sparkline } from '../components/Sparkline';
+import { ReclassBadge } from '../components/ReclassBadge';
 
 /** How long a reclass stays highlighted on the board. */
 const RECENT_RECLASS_MS = 10 * 60_000;
@@ -152,6 +153,7 @@ function BoardTable({
                       ↻ {shortCls(recentReclass.from)}→{shortCls(recentReclass.to)}
                     </span>
                   )}
+                  <ReclassBadge risk={ci?.reclass} />
                   {teamByNo.get(num) ?? ''}
                 </td>
                 <td className="tnum px-2 py-1.5 text-right">{c.lastLapCompleted || '–'}</td>

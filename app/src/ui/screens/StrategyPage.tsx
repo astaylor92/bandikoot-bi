@@ -7,6 +7,7 @@ import { carStrategyData, liveProjections, raceClock } from '../../strategy/live
 import { assessTarget } from '../../strategy/targetPosition';
 import { ClassChip } from '../components/ClassChip';
 import { useFieldIntel } from '../hooks/useFieldIntel';
+import { ReclassCard } from '../components/ReclassCard';
 
 export function StrategyPage() {
   const session = useSessionStore((s) => s.session);
@@ -99,6 +100,8 @@ export function StrategyPage() {
           }
         />
       </div>
+
+      <ReclassCard risk={intel[myCar]?.reclass} title="Our reclass risk" />
 
       {assessment && (
         <div className="rounded-lg border border-pit-line bg-pit-panel p-4">

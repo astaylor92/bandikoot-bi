@@ -3,6 +3,7 @@ import { useAppStore, useCarOverrides } from '../../state/appStore';
 import { NumberField } from '../components/NumberField';
 import { NextPitCell } from '../components/NextPitCell';
 import { Sparkline } from '../components/Sparkline';
+import { ReclassCard } from '../components/ReclassCard';
 import { raceClock } from '../../strategy/liveInputs';
 import { formatClock, formatLapTime } from '../../data/time';
 import { paceSummary } from '../../strategy/pace';
@@ -144,6 +145,8 @@ export function CarDetail({ car }: { car: string }) {
           ))}
         </div>
       </div>
+
+      <ReclassCard risk={intel?.reclass} />
 
       {classChanges.length > 0 && (
         <div className="rounded-lg border border-pit-line bg-pit-panel p-4">

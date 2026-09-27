@@ -34,7 +34,8 @@ export function useFieldIntel(): Record<string, CarIntel> {
         },
         nowMs: elapsedMs,
         raceEndMs,
+        classOrder: session.classOrder,
       }),
-    [lapLog, cars, strategy, overrides, carOverrides, elapsedMs, raceEndMs],
+    [lapLog, cars, strategy, overrides, carOverrides, elapsedMs, raceEndMs, session.classOrder],
   );
 }
