@@ -5,7 +5,7 @@ import { useAppStore, useMyCar, useRivals } from '../../state/appStore';
 import { ClassChip } from '../components/ClassChip';
 import { useFieldIntel } from '../hooks/useFieldIntel';
 import type { CarIntel } from '../../strategy/fieldIntel';
-import { raceClock } from '../../strategy/liveInputs';
+import { useRaceClock } from '../hooks/useRaceClock';
 import { NextPitCell } from '../components/NextPitCell';
 import { Sparkline } from '../components/Sparkline';
 import { ReclassBadge } from '../components/ReclassBadge';
@@ -20,7 +20,7 @@ export function TimingBoard() {
   const [byClass, setByClass] = useState(true);
   const myCar = useMyCar();
   const intel = useFieldIntel();
-  const elapsedMs = raceClock(session).elapsedMs;
+  const elapsedMs = useRaceClock().elapsedMs;
 
   if (!hasSession) {
     return <div className="p-6 text-center text-pit-dim">Waiting for session data…</div>;

@@ -38,7 +38,8 @@ export function FreshnessBadge() {
       ) : (
         <>
           <span className="hidden sm:inline">last crossing </span>
-          {fmt(f.sinceCrossingSec)} ago
+          {fmt(f.sinceCrossingSec)}
+          <span className="hidden sm:inline"> ago</span>
         </>
       )}
     </span>

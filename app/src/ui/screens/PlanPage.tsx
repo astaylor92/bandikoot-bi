@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useSessionStore } from '../../data/sessionStore';
 import { useAppStore, useMyCar, useStintConfig, type StintConfigStored } from '../../state/appStore';
 import { formatClock } from '../../data/time';
-import { raceClock } from '../../strategy/liveInputs';
+import { useRaceClock } from '../hooks/useRaceClock';
 import { pitDecision, stintStatus, type StintConfig } from '../../strategy/stintPlanner';
 
 const MIN = 60_000;
@@ -15,7 +15,7 @@ export function PlanPage() {
   const stored = useStintConfig();
   const setStintConfig = useAppStore((s) => s.setStintConfig);
 
-  const clock = raceClock(session);
+  const clock = useRaceClock();
   const elapsedMs = clock.elapsedMs ?? 0;
 
   const cfg: StintConfig = useMemo(

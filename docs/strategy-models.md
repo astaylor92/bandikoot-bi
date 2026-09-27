@@ -17,6 +17,8 @@ These outputs are planning estimates, not official timing. Every function lives 
 
 ## Projection (`projection.ts`, `liveInputs.ts`)
 
+- **Race length.** When the feed's countdown is zero or missing while the race runs (always, at LDRL), the length comes from the session name, then the Pit Plan race length. The estimate is marked `~` in the header. Next pit, "to flag", stops to flag and finish projections all use it.
+
 - **Laps at the flag** = laps completed + (remaining race time − remaining pit time) ÷ rolling pace.
   - Remaining race time counts from **now**. A car on track is credited at most the lap it's on; a car in the pits gets no credit.
   - Earlier versions counted from the last crossing, so a car sitting in the pits was credited with the whole stop as driving. At VIR that turned a projected 1-lap loss into a 13-min win.

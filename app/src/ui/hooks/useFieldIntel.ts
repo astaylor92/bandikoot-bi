@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useSessionStore } from '../../data/sessionStore';
 import { useAppStore, useCarOverrides, useDriverChangeOverrides } from '../../state/appStore';
 import { fieldIntel, type CarIntel } from '../../strategy/fieldIntel';
-import { raceClock } from '../../strategy/liveInputs';
+import { useRaceClock } from './useRaceClock';
 import { Flags } from '../../api/redmist/flags';
 
 /** Derived per-car intel (stops, driver stints, reclasses, next pit) for the whole field. */
@@ -13,7 +13,7 @@ export function useFieldIntel(): Record<string, CarIntel> {
   const strategy = useAppStore((s) => s.strategy);
   const overrides = useDriverChangeOverrides();
   const carOverrides = useCarOverrides();
-  const { elapsedMs, raceEndMs } = raceClock(session);
+  const { elapsedMs, raceEndMs } = useRaceClock();
   return useMemo(
     () =>
       fieldIntel({

@@ -2,6 +2,8 @@ import type { SessionState } from '../api/redmist/session-state';
 import type { CarPosition } from '../api/redmist/car-position';
 import type { LapRecord } from '../data/sessionStore';
 import { parseDurationMs } from '../data/time';
+import { raceLengthMsFromName } from '../data/lapsSnapshot';
+import { Flags } from '../api/redmist/flags';
 import { paceSummary, type PaceSummary } from './pace';
 import { isParked } from './nextPit';
 import { projectStandings, type ProjectedCar, type ProjectionCarInput } from './projection';
@@ -10,15 +12,35 @@ export interface RaceClock {
   elapsedMs: number | null;
   remainingMs: number | null;
   raceEndMs: number | null;
+  /** Where the race length came from: the timing feed, the session name, or the Pit Plan setting. */
+  lengthSource: 'feed' | 'name' | 'setting' | null;
 }
 
-export function raceClock(session: SessionState): RaceClock {
+/**
+ * Race clock from the session. LDRL's timing sends timeToGo "00:00:00" for the
+ * whole race (no countdown configured), which would make the race look over.
+ * While the race is running, a zero/missing countdown falls back to the length
+ * in the session name ("Sun 2+5Hr" = 7 h), then to `fallbackLengthMs`.
+ */
+export function raceClock(session: SessionState, fallbackLengthMs: number | null = null): RaceClock {
   const elapsedMs = parseDurationMs(session.runningRaceTime);
-  const remainingMs = parseDurationMs(session.timeToGo);
+  const fed = parseDurationMs(session.timeToGo);
+  let remainingMs = fed;
+  let lengthSource: RaceClock['lengthSource'] = fed !== null ? 'feed' : null;
+  const finished = session.currentFlag === Flags.Checkered;
+  if ((fed === null || fed === 0) && !finished && elapsedMs !== null) {
+    const fromName = raceLengthMsFromName(session.sessionName ?? '');
+    const length = fromName ?? fallbackLengthMs;
+    if (length !== null) {
+      remainingMs = Math.max(0, length - elapsedMs);
+      lengthSource = fromName !== null ? 'name' : 'setting';
+    }
+  }
   return {
     elapsedMs,
     remainingMs,
     raceEndMs: elapsedMs !== null && remainingMs !== null ? elapsedMs + remainingMs : null,
+    lengthSource,
   };
 }
 

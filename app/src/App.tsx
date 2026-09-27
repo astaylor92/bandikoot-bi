@@ -14,7 +14,9 @@ import { SettingsPage } from './ui/screens/SettingsPage';
 import { RivalPage } from './ui/screens/RivalPage';
 import { RivalToast } from './ui/components/RivalToast';
 import { FreshnessBadge } from './ui/components/FreshnessBadge';
-import { formatClock, parseDurationMs } from './data/time';
+import { formatClock } from './data/time';
+import { useRaceClock } from './ui/hooks/useRaceClock';
+import type { RaceClock } from './strategy/liveInputs';
 
 export default function App() {
   const view = useAppStore((s) => s.view);
@@ -47,7 +49,7 @@ export default function App() {
 
   const inSession = mode !== null;
   const flag = flagStyle(session.currentFlag);
-  const remaining = parseDurationMs(session.timeToGo);
+  const clock = useRaceClock();
 
   const leaveSession = async () => {
     await disconnect();
@@ -58,25 +60,25 @@ export default function App() {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="border-b border-pit-line bg-pit-panel">
-        <div className="flex items-center gap-3 px-3 py-2">
-          <button className="text-left" onClick={() => (inSession ? navigate({ name: 'board' }) : navigate({ name: 'events' }))}>
+        <div className="flex items-center gap-2 px-2 py-2 sm:gap-3 sm:px-3">
+          <button className="shrink-0 text-left" onClick={() => (inSession ? navigate({ name: 'board' }) : navigate({ name: 'events' }))}>
             <span className="flex items-center gap-2">
               <img src={`${import.meta.env.BASE_URL}brand/bandicoot.png`} alt="" className="h-7 w-auto shrink-0" />
-              <span className="font-display text-lg font-extrabold uppercase tracking-wide whitespace-nowrap sm:text-xl">
+              <span
+                className={`font-display text-lg font-extrabold uppercase tracking-wide whitespace-nowrap sm:inline sm:text-xl ${inSession ? 'hidden' : ''}`}
+              >
                 Coot <span className="text-accent">Crew</span>
               </span>
             </span>
           </button>
           {inSession && hasSession && (
             <>
-              <span className={`rounded px-2 py-0.5 text-sm font-black ${flag.className}`}>{flag.label}</span>
-              <span className="tnum hidden text-sm sm:inline">
-                {session.sessionName}
-                {remaining !== null && remaining > 0 && <> · {formatClock(remaining)} to go</>}
-              </span>
+              <span className={`rounded px-1.5 py-0.5 text-xs font-black sm:px-2 sm:text-sm ${flag.className}`}>{flag.label}</span>
+              <span className="hidden text-sm text-pit-dim lg:inline">{session.sessionName}</span>
+              <RaceClockText clock={clock} />
             </>
           )}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
             {mode === 'live' && hasSession && <FreshnessBadge />}
             <ConnectionBadge />
             {!inSession && (
@@ -88,7 +90,7 @@ export default function App() {
               </button>
             )}
             {inSession && (
-              <button className="rounded border border-pit-line px-2 py-0.5 text-sm text-pit-dim" onClick={() => void leaveSession()}>
+              <button className="rounded border border-pit-line px-1.5 py-0.5 text-sm text-pit-dim sm:px-2" onClick={() => void leaveSession()}>
                 Exit
               </button>
             )}
@@ -138,5 +140,29 @@ function Tab({ label, active, onClick }: { label: string; active: boolean; onCli
     >
       {label}
     </button>
+  );
+}
+
+/** "1:23:45 · 5:36:15 left" — elapsed always, remaining when known (~ = estimated from the race length). */
+function RaceClockText({ clock }: { clock: RaceClock }) {
+  if (clock.elapsedMs === null) return null;
+  const estimated = clock.lengthSource === 'name' || clock.lengthSource === 'setting';
+  const title = estimated
+    ? `Time left is estimated: the timing feed has no countdown, so it uses the race length from ${
+        clock.lengthSource === 'name' ? 'the session name' : 'the Pit Plan race length'
+      }.`
+    : 'Race time elapsed · time left';
+  return (
+    <span className="tnum whitespace-nowrap text-sm" title={title}>
+      <span className={clock.remainingMs !== null ? 'hidden sm:inline' : ''}>{formatClock(clock.elapsedMs)}</span>
+      {clock.remainingMs !== null && (
+        <>
+          <span className="hidden sm:inline text-pit-dim"> · </span>
+          {estimated ? '~' : ''}
+          {formatClock(clock.remainingMs)}
+          <span className="text-pit-dim"> left</span>
+        </>
+      )}
+    </span>
   );
 }
